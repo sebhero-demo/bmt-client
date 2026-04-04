@@ -20,10 +20,14 @@
 
 ### Design / UI
 
-- [ ] **D1:** Byt till distinctive fonts (för närvarande system-zinc)
-- [ ] **D2:** Förbättra färgschema (för närvarande basic zinc)
-- [ ] **D3:** Lägg till visual effects (noise, gradient mesh, grain)
-- [ ] **D4:** Förbättra animations (staggered load, micro-interactions)
+- [ ] **D1:** Byt till distinctive fonts — Inga egna fonts, bara Tailwind zinc
+  - Lösning: Importera t.ex. Syne (display) + Satoshi/General Sans (body) via Google Fonts eller Fontshare
+- [ ] **D2:** Definiera custom CSS variables för färgschema
+  - Lösning: Skapa cohesive theme med Beast Mode-tema (lila/purple accent)
+- [ ] **D3:** Lägg till visual effects — Helt platt bakgrund
+  - Lösning: Noise texture overlay, gradient mesh, eller grain
+- [ ] **D4:** Förbättra animations — Bara basic transitions
+  - Lösning: Staggered page load, micro-interactions, timer transitions
 
 ### Features
 
