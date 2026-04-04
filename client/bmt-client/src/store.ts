@@ -27,6 +27,8 @@ interface AppState {
  resumeTask: (id: string) => void;
  completeTask: (id: string) => void;
  updateTaskTitle: (id: string, title: string) => void;
+ updateTaskTime: (id: string, durationSeconds: number) => void;
+ addManualTimeLog: (id: string, durationSeconds: number, date: string) => void;
  // Actions - Timer
  startTimer: () => void;
  pauseTimer: () => void;
@@ -289,6 +291,35 @@ export const useAppStore = create<AppState>()(
          ),
        }));
      },
+
+    // Update total duration for a task
+    updateTaskTime: (id, durationSeconds) => {
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === id ? { ...t, totalDurationSeconds: durationSeconds } : t
+        ),
+      }));
+    },
+
+    // Add a manual time log
+    addManualTimeLog: (id, durationSeconds, date) => {
+      const newLog: TimeLog = {
+        id: generateId(),
+        startTime: date,
+        endTime: date,
+        durationSeconds,
+      };
+      
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === id ? { 
+            ...t, 
+            totalDurationSeconds: t.totalDurationSeconds + durationSeconds,
+            timeLogs: [...t.timeLogs, newLog]
+          } : t
+        ),
+      }));
+    },
 
      // Timer Actions
      startTimer: () => set({ isTimerRunning: true }),

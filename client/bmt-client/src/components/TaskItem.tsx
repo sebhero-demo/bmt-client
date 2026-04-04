@@ -1,5 +1,5 @@
 import React, { useState, useId, useRef, useEffect } from 'react';
-import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle } from 'lucide-react';
+import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle, Timer } from 'lucide-react';
 import type { Task } from '../types';
 import { formatDuration } from '../types';
 import { useAppStore } from '../store';
@@ -22,6 +22,8 @@ export const TaskItem = ({ task }: TaskItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showTimeEdit, setShowTimeEdit] = useState(false);
+  const [editMinutes, setEditMinutes] = useState();
   const inputId = useId();
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const confirmDeleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -37,6 +39,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
     completeTask,
     deleteTask,
     updateTaskTitle,
+    updateTaskTime,
   } = useAppStore();
 
   const isActive = activeTaskId === task.id;
@@ -77,6 +80,19 @@ export const TaskItem = ({ task }: TaskItemProps) => {
       updateTaskTitle(task.id, trimmed);
     }
     setIsEditing(false);
+  };
+
+  const handleTimeEditOpen = () => {
+    setEditMinutes(Math.floor(task.totalDurationSeconds / 60).toString());
+    setShowTimeEdit(true);
+  };
+
+  const handleTimeEditSave = () => {
+    const mins = parseInt(editMinutes) || 0;
+    if (mins > 0) {
+      updateTaskTime(task.id, mins * 60);
+    }
+    setShowTimeEdit(false);
   };
 
   const handleCancelEdit = () => {
@@ -212,21 +228,38 @@ export const TaskItem = ({ task }: TaskItemProps) => {
               </div>
 
               {!isCompleted && (
-                <Button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  aria-label={`Edit ${task.title}`}
-                  className="
-                    flex-shrink-0 p-2.5 rounded-xl
-                    min-w-[44px] min-h-[44px] flex items-center justify-center
-                    text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800
-                    transition-colors cursor-pointer
-                    focus:outline-none focus:ring-2 focus:ring-green-500
-                    focus:ring-offset-2 focus:ring-offset-zinc-900
-                  "
-                >
-                  <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    aria-label={`Edit ${task.title}`}
+                    className="
+                      flex-shrink-0 p-2.5 rounded-xl
+                      min-w-[44px] min-h-[44px] flex items-center justify-center
+                      text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800
+                      transition-colors cursor-pointer
+                      focus:outline-none focus:ring-2 focus:ring-green-500
+                      focus:ring-offset-2 focus:ring-offset-zinc-900
+                    "
+                  >
+                    <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleTimeEditOpen}
+                    aria-label={`Edit time for ${task.title}`}
+                    className="
+                      flex-shrink-0 p-2.5 rounded-xl
+                      min-w-[44px] min-h-[44px] flex items-center justify-center
+                      text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800
+                      transition-colors cursor-pointer
+                      focus:outline-none focus:ring-2 focus:ring-yellow-500
+                      focus:ring-offset-2 focus:ring-offset-zinc-900
+                    "
+                  >
+                    <Timer className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -355,6 +388,77 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 "
               >
                 Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Time Edit Dialog */}
+      {showTimeEdit && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="time-title"
+          aria-describedby="time-desc"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowTimeEdit(false); }}
+        >
+          <div className="bg-zinc-900 rounded-2xl p-6 max-w-sm w-full border border-zinc-700 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <Timer className="w-6 h-6 flex-shrink-0 text-yellow-500" aria-hidden="true" />
+              <h2 id="time-title" className="text-lg font-bold text-zinc-100">
+                Adjust Time
+              </h2>
+            </div>
+
+            <p id="time-desc" className="text-zinc-400 mb-4">
+              Enter the total time spent (in minutes) for "{task.title}"
+            </p>
+
+            <Field.Root className="mb-4">
+              <Field.Label htmlFor="edit-minutes" className="sr-only">
+                Minutes
+              </Field.Label>
+              <input
+                id="edit-minutes"
+                type="number"
+                min="0"
+                value={editMinutes}
+                onChange={(e) => setEditMinutes(e.target.value)}
+                placeholder="Minutes"
+                className="
+                  w-full bg-zinc-700 border border-zinc-600 rounded-xl
+                  px-4 py-3 text-zinc-100 text-lg min-h-[56px]
+                  focus:outline-none focus:ring-2 focus:ring-yellow-500
+                  placeholder:text-zinc-500
+                "
+              />
+            </Field.Root>
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                type="button"
+                onClick={() => setShowTimeEdit(false)}
+                className="
+                  px-5 py-2.5 rounded-xl min-h-[44px] font-medium cursor-pointer
+                  bg-zinc-800 hover:bg-zinc-700 text-zinc-100
+                  transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-500
+                "
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleTimeEditSave}
+                className="
+                  px-5 py-2.5 rounded-xl min-h-[44px] font-medium cursor-pointer
+                  bg-yellow-500 hover:bg-yellow-600 text-white
+                  transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500
+                "
+              >
+                Save
               </Button>
             </div>
           </div>
