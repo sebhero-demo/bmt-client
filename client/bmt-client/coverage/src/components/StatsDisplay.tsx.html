@@ -396,12 +396,12 @@ const { userStats, <span class="cstat-no" title="statement not covered" >toggleB
   &gt;
     {/* XP */}
     &lt;div 
-      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-[80px]"
+      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-20"
       role="region"
       aria-label="Experience points"
     &gt;
       &lt;Zap 
-        className="text-accent-yellow mb-1.5 w-5 h-5 flex-shrink-0" 
+        className="text-accent-yellow mb-1.5 w-5 h-5 shrink-0" 
         aria-hidden="true" 
       /&gt;
       &lt;span 
@@ -417,12 +417,12 @@ const { userStats, <span class="cstat-no" title="statement not covered" >toggleB
 &nbsp;
     {/* Streak */}
     &lt;div 
-      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-[80px]"
+      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-20"
       role="region"
       aria-label="Current streak"
     &gt;
       &lt;Flame 
-        className="text-accent-yellow mb-1.5 w-5 h-5 flex-shrink-0" 
+        className="text-accent-yellow mb-1.5 w-5 h-5 shrink-0" 
         aria-hidden="true" 
       /&gt;
       &lt;span 
@@ -438,7 +438,7 @@ const { userStats, <span class="cstat-no" title="statement not covered" >toggleB
 &nbsp;
     {/* Beast Mode */}
     &lt;div 
-      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-[80px]"
+      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-20"
       role="region"
       aria-label="Beast mode toggle"
     &gt;
@@ -447,9 +447,9 @@ const { userStats, <span class="cstat-no" title="statement not covered" >toggleB
         onCheckedChange={toggleBeastMode}
         className={`
           w-12 sm:w-14 h-7 sm:h-8 rounded-full transition-all duration-200 relative
-          data-[checked]:bg-accent-purple data-[unchecked]:bg-bg-hover
+          data-checked:bg-accent-purple data-unchecked:bg-bg-hover
           focus:outline-none focus:ring-2 focus:ring-accent-purple focus:ring-offset-2 
-          focus:ring-offset-bg-card cursor-pointer touch-manipulation min-h-[44px]
+          focus:ring-offset-bg-card cursor-pointer touch-manipulation min-h-11
         `}
         aria-label="Toggle Beast Mode"
       &gt;
@@ -458,14 +458,14 @@ const { userStats, <span class="cstat-no" title="statement not covered" >toggleB
             absolute top-0.5 left-0.5 sm:top-1 sm:left-1 
             w-6 h-6 rounded-full bg-white shadow-lg
             transition-transform duration-200 ease-spring
-            data-[checked]:translate-x-5 sm:data-[checked]:translate-x-6
+            data-checked:translate-x-5 sm:data-checked:translate-x-6
           " 
         /&gt;
       &lt;/Switch.Root&gt;
       
       &lt;div className="flex items-center gap-1 mt-1.5"&gt;
         &lt;Trophy 
-          className={`w-4 h-4 flex-shrink-0 ${userStats.isBeastModeActive ? 'text-accent-purple' : 'text-text-muted'}`}
+          className={`w-4 h-4 shrink-0 ${userStats.isBeastModeActive ? 'text-accent-purple' : 'text-text-muted'}`}
           aria-hidden="true" 
         /&gt;
         &lt;span 
@@ -506,19 +506,19 @@ const <span class="cstat-no" title="statement not covered" >taskStats = getTaskS
     &gt;
       {taskStats.slice(0, 5).<span class="fstat-no" title="function not covered" >map((s</span>tat) =&gt; (
 <span class="cstat-no" title="statement not covered" >        &lt;li key={stat.title}&gt;</span>
-          &lt;div className="flex items-center justify-between text-sm min-h-[44px]"&gt;
+          &lt;div className="flex items-center justify-between text-sm min-h-11"&gt;
             &lt;span 
               className="truncate text-text-primary font-medium pr-4"
               title={stat.title}
             &gt;
               {stat.title}
             &lt;/span&gt;
-            &lt;div className="flex items-center gap-2 sm:gap-3 text-text-muted flex-shrink-0"&gt;
+            &lt;div className="flex items-center gap-2 sm:gap-3 text-text-muted shrink-0"&gt;
               &lt;span 
-                className="bg-bg-hover px-2 py-1 rounded text-xs font-medium min-w-[24px] text-center"
+                className="bg-bg-hover px-2 py-1 rounded text-xs font-medium min-w-6 text-center"
                 aria-label={`Completed ${stat.completionCount} times`}
               &gt;
-                {stat.completionCount}×
+                {stat.completionCount}x
               &lt;/span&gt;
               &lt;span className="text-xs tabular-nums"&gt;
                 {Math.round(stat.avgTimeSeconds / 60)}m &lt;span className="sr-only"&gt;average&lt;/span&gt;
@@ -547,7 +547,7 @@ const <span class="cstat-no" title="statement not covered" >taskStats = getTaskS
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-06T07:17:47.845Z
+                at 2026-04-06T18:56:07.935Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
