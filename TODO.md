@@ -37,6 +37,7 @@
 - [ ] **F4:** Google Drive — koppla filer till tasks
 - [ ] **F5:** Weekly retrospective summary — veckovis statistik
 - [ ] **F6:** Database/backend — PostgreSQL/Firebase för cross-platform sync
+- [x] **F7:** Förbättrad tidsvisning — visa medel/max på alla uppgifter (se user-stories/stats-visibility.md)
 
 ### Technical
 

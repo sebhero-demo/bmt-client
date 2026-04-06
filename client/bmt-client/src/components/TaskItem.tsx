@@ -1,13 +1,77 @@
 import React, { useState, useId, useRef, useEffect } from 'react';
-import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle, Timer } from 'lucide-react';
-import type { Task } from '../types';
-import { formatDuration } from '../types';
+import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle, Timer, RotateCcw, TrendingUp, TrendingDown, Gauge, BarChart3 } from 'lucide-react';
+import type { Task, TaskStats } from '../types';
+import { formatDuration, getTaskStats } from '../types';
 import { useAppStore } from '../store';
 import { Button } from '@base-ui/react/button';
 import { Field } from '@base-ui/react/field';
 
+// Component to show min/max/avg for a task (regardless of status)
+const StatsInfo = ({ taskTitle, currentDuration, status }: { taskTitle: string; currentDuration: number; status: string }) => {
+  const { tasks } = useAppStore();
+  const allStats = getTaskStats(tasks);
+  const taskStat = allStats.find(s => s.title === taskTitle);
+  
+  // If no historical stats, show "New task" indicator for motivation
+  if (!taskStat) {
+    return (
+      <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs bg-zinc-800/50 text-zinc-500 mt-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/50" aria-hidden="true" />
+        <span>Ny uppgift</span>
+      </span>
+    );
+  }
+  
+  const isNewMin = currentDuration <= taskStat.minTimeSeconds;
+  const isNewMax = taskStat.completionCount > 1 && currentDuration >= taskStat.maxTimeSeconds;
+  const isPBD = isNewMin || isNewMax; // Personal best/different
+  
+  return (
+    <div className={`flex items-center gap-2 text-xs mt-2 ${isPBD ? 'animate-pulse' : ''}`}>
+      {taskStat.completionCount > 1 && (
+        <span 
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold ${isNewMin ? 'bg-green-500/25 text-green-400 ring-1 ring-green-500/50' : 'bg-zinc-800 text-zinc-400'}`}
+        >
+          <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Bästa</span>
+          <span className="font-mono">{formatDuration(taskStat.minTimeSeconds)}</span>
+        </span>
+      )}
+      <span 
+        className="flex items-center gap-1 px-2 py-1 rounded-lg font-semibold bg-zinc-800 text-zinc-300"
+      >
+        <BarChart3 className="w-3.5 h-3.5" aria-hidden="true" />
+        <span>Medel</span>
+        <span className="font-mono">{formatDuration(taskStat.avgTimeSeconds)}</span>
+      </span>
+      {taskStat.completionCount > 1 && (
+        <span 
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold ${isNewMax ? 'bg-red-500/25 text-red-400 ring-1 ring-red-500/50' : 'bg-zinc-800 text-zinc-400'}`}
+        >
+          <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Max</span>
+          <span className="font-mono">{formatDuration(taskStat.maxTimeSeconds)}</span>
+        </span>
+      )}
+      {isPBD && (
+        <span className="ml-1 px-2 py-1 rounded-lg font-bold text-yellow-400 bg-yellow-500/20 animate-bounce">
+          🏆 REKORD!
+        </span>
+      )}
+    </div>
+  );
+};
+
 interface TaskItemProps {
   task: Task;
+}
+
+interface TaskWithStats extends Task {
+  stats?: {
+    min: number;
+    max: number;
+    avg: number;
+  };
 }
 
 const roundBtnBase = `
@@ -40,6 +104,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
     deleteTask,
     updateTaskTitle,
     updateTaskTime,
+    redoTask,
   } = useAppStore();
 
   const isActive = activeTaskId === task.id;
@@ -117,7 +182,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
     <>
       <article
         className={`
-          flex items-center gap-3 p-3 sm:p-4 rounded-2xl transition-all duration-200
+          flex flex-col gap-3 p-3 sm:p-4 rounded-2xl transition-all duration-200
           ${isActive
             ? 'bg-green-500/10 border-2 border-green-500/30'
             : 'bg-zinc-900 border border-zinc-700 hover:border-zinc-500'
@@ -126,21 +191,108 @@ export const TaskItem = ({ task }: TaskItemProps) => {
         `}
         aria-label={`${getStatusLabel()}: ${task.title}`}
       >
-        {/* Status dot */}
-        <div
-          className={`
-            flex-shrink-0 w-3 h-3 rounded-full ring-2 ring-zinc-900
-            ${isCompleted
-              ? 'bg-green-500'
-              : isActive
-                ? 'bg-green-500 animate-pulse'
-                : 'bg-zinc-500'
-            }
-          `}
-          aria-hidden="true"
-        />
+        {/* Action buttons - top row */}
+        <div className="flex items-center gap-3">
+          {/* Status dot */}
+          <div
+            className={`
+              flex-shrink-0 w-3 h-3 rounded-full ring-2 ring-zinc-900
+              ${isCompleted
+                ? 'bg-green-500'
+                : isActive
+                  ? 'bg-green-500 animate-pulse'
+                  : 'bg-zinc-500'
+              }
+            `}
+            aria-hidden="true"
+          />
 
-        {/* Task content */}
+          {/* Main action buttons */}
+          <div
+            className="flex items-center gap-1.5 flex-shrink-0"
+            role="group"
+            aria-label={`Actions for ${task.title}`}
+          >
+            {!isCompleted && !isEditing && (
+              <>
+                {task.status === 'idle' && (
+                  <Button
+                    type="button"
+                    onClick={handleStart}
+                    aria-label={`Start ${task.title}`}
+                    className={`${roundBtnBase} bg-green-500 hover:bg-green-600 text-white focus:ring-green-500`}
+                  >
+                    <Play className="w-5 h-5 fill-current" aria-hidden="true" />
+                  </Button>
+                )}
+
+                {task.status === 'in_progress' && (
+                  <Button
+                    type="button"
+                    onClick={handlePause}
+                    aria-label={`Pause ${task.title}`}
+                    className={`${roundBtnBase} bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500`}
+                  >
+                    <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
+                  </Button>
+                )}
+
+                {task.status === 'paused' && (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={handleResume}
+                      aria-label={`Resume ${task.title}`}
+                      className={`${roundBtnBase} bg-green-500 hover:bg-green-600 text-white focus:ring-green-500`}
+                    >
+                      <Play className="w-5 h-5 fill-current" aria-hidden="true" />
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={handleComplete}
+                      aria-label={`Complete ${task.title}`}
+                      className={`${roundBtnBase} bg-green-500/80 hover:bg-green-500 text-white focus:ring-green-500`}
+                    >
+                      <Check className="w-5 h-5" aria-hidden="true" />
+                    </Button>
+                  </>
+                )}
+              </>
+            )}
+
+            {isCompleted && (
+              <>
+                <span className="flex items-center gap-1.5 text-green-500 text-sm font-semibold px-2 py-1 bg-green-500/10 rounded-lg">
+                  <Check className="w-4 h-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Done</span>
+                </span>
+                <Button
+                  type="button"
+                  onClick={() => redoTask(task.id)}
+                  aria-label={`Redo ${task.title}`}
+                  className={`${roundBtnBase} bg-zinc-700 hover:bg-zinc-600 text-zinc-300 focus:ring-zinc-500`}
+                >
+                  <RotateCcw className="w-5 h-5" aria-hidden="true" />
+                </Button>
+              </>
+            )}
+
+            {!isEditing && (
+              <Button
+                type="button"
+                onClick={handleDelete}
+                aria-label={`Delete ${task.title}`}
+                ref={deleteButtonRef}
+                className={`${roundBtnBase} text-zinc-500 hover:text-red-500 hover:bg-red-500/10 focus:ring-red-500`}
+              >
+                <Trash2 className="w-5 h-5" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Task content - below buttons */}
         <div className="flex-1 min-w-0">
           {isEditing ? (
             <form
@@ -211,19 +363,23 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                   {task.title}
                 </h3>
 
-                <div className="flex items-center gap-2 text-sm text-zinc-500 mt-1.5">
-                  <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                  <time
-                    dateTime={`PT${Math.floor(currentDuration / 60)}M`}
-                    className="tabular-nums"
-                  >
-                    {formattedDuration}
-                  </time>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500 mt-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                    <time
+                      dateTime={`PT${Math.floor(currentDuration / 60)}M`}
+                      className="tabular-nums"
+                    >
+                      {formattedDuration}
+                    </time>
+                  </div>
                   {task.timeLogs.length > 0 && (
                     <span className="text-xs bg-zinc-800 px-2 py-0.5 rounded-full">
                       {task.timeLogs.length} sessions
                     </span>
                   )}
+                  {/* Display min/max/avg if available - show for any task with history */}
+                  <StatsInfo taskTitle={task.title} currentDuration={currentDuration} status={task.status} />
                 </div>
               </div>
 
@@ -262,80 +418,6 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 </div>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Action buttons */}
-        <div
-          className="flex items-center gap-1.5 flex-shrink-0"
-          role="group"
-          aria-label={`Actions for ${task.title}`}
-        >
-          {!isCompleted && !isEditing && (
-            <>
-              {task.status === 'idle' && (
-                <Button
-                  type="button"
-                  onClick={handleStart}
-                  aria-label={`Start ${task.title}`}
-                  className={`${roundBtnBase} bg-green-500 hover:bg-green-600 text-white focus:ring-green-500`}
-                >
-                  <Play className="w-5 h-5 fill-current" aria-hidden="true" />
-                </Button>
-              )}
-
-              {task.status === 'in_progress' && (
-                <Button
-                  type="button"
-                  onClick={handlePause}
-                  aria-label={`Pause ${task.title}`}
-                  className={`${roundBtnBase} bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500`}
-                >
-                  <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
-                </Button>
-              )}
-
-              {task.status === 'paused' && (
-                <>
-                  <Button
-                    type="button"
-                    onClick={handleResume}
-                    aria-label={`Resume ${task.title}`}
-                    className={`${roundBtnBase} bg-green-500 hover:bg-green-600 text-white focus:ring-green-500`}
-                  >
-                    <Play className="w-5 h-5 fill-current" aria-hidden="true" />
-                  </Button>
-
-                  <Button
-                    type="button"
-                    onClick={handleComplete}
-                    aria-label={`Complete ${task.title}`}
-                    className={`${roundBtnBase} bg-green-500/80 hover:bg-green-500 text-white focus:ring-green-500`}
-                  >
-                    <Check className="w-5 h-5" aria-hidden="true" />
-                  </Button>
-                </>
-              )}
-            </>
-          )}
-
-          {isCompleted && (
-            <span className="flex items-center gap-1.5 text-green-500 text-sm font-semibold px-2 py-1 bg-green-500/10 rounded-lg">
-              <Check className="w-4 h-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Done</span>
-            </span>
-          )}
-
-          {!isEditing && (
-            <Button
-              type="button"
-              onClick={handleDelete}
-              aria-label={`Delete ${task.title}`}
-              ref={deleteButtonRef}
-              className={`${roundBtnBase} text-zinc-500 hover:text-red-500 hover:bg-red-500/10 focus:ring-red-500`}
-            >
-              <Trash2 className="w-5 h-5" aria-hidden="true" />
-            </Button>
           )}
         </div>
       </article>

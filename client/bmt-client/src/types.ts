@@ -101,3 +101,36 @@ export const getTaskStats = (tasks: Task[]): TaskStats[] => {
   
   return stats.sort((a, b) => b.completionCount - a.completionCount);
 };
+
+export interface MotivationMessage {
+  emoji: string;
+  text: string;
+  type: 'new' | 'challenge' | 'record';
+}
+
+export const getMotivationMessage = (taskStat: TaskStats | undefined): MotivationMessage | null => {
+  if (!taskStat) {
+    return {
+      emoji: '✨',
+      text: 'Ny utmaning! Starta din timer.',
+      type: 'new',
+    };
+  }
+
+  const { completionCount, avgTimeSeconds, minTimeSeconds } = taskStat;
+
+  if (completionCount === 1) {
+    return {
+      emoji: '🎯',
+      text: `Din genomsnittstid är ${formatDuration(avgTimeSeconds)}. Kan du slå den?`,
+      type: 'challenge',
+    };
+  }
+
+  // 2+ completions
+  return {
+    emoji: '🏆',
+    text: `Ditt record är ${formatDuration(minTimeSeconds)}! Slå din egen siffra.`,
+    type: 'record',
+  };
+};

@@ -1,13 +1,24 @@
-import { defineConfig } from 'vite'
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
-import babel from '@rolldown/plugin-babel'
-import tailwindcss from '@tailwindcss/vite'
+/// <reference types="vitest/config" />
+import { defineConfig, configDefaults } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    babel({ presets: [reactCompilerPreset()] }),
-    tailwindcss()
-  ],
-})
+  plugins: [react(), tailwindcss()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+    include: ['src/test/**/*.test.ts'],
+    exclude: [...configDefaults.exclude, '**/node_modules/**'],
+    sequence: {
+      shuffle: false,
+    },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**/*.ts', 'src/**/*.tsx'],
+      exclude: ['src/test/**', 'src/**/*.d.ts', 'src/main.tsx', 'src/App.tsx'],
+    },
+  },
+});

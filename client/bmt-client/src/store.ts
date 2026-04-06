@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Task, UserStats, TimeLog } from './types';
-import { generateId } from './types';
+import { generateId, getTaskStats, getMotivationMessage } from './types';
 
 // ============================================
 // Types
@@ -15,6 +15,9 @@ interface AppState {
  // Timer
  timerSeconds: number;
  isTimerRunning: boolean;
+ timerStartTime: number | null;  // Timestamp when timer started (for persistence)
+ // Motivation message (shows when starting a task)
+ motivationMessage: { emoji: string; text: string; type: string } | null;
  // Accessibility state for notifications
  announcement: string | null;
  isLoading: boolean;
@@ -29,6 +32,7 @@ interface AppState {
  updateTaskTitle: (id: string, title: string) => void;
  updateTaskTime: (id: string, durationSeconds: number) => void;
  addManualTimeLog: (id: string, durationSeconds: number, date: string) => void;
+ redoTask: (id: string) => void;
  // Actions - Timer
  startTimer: () => void;
  pauseTimer: () => void;
@@ -41,6 +45,8 @@ interface AppState {
  incrementStreak: () => void;
  resetStreak: () => void;
  toggleBeastMode: () => void;
+ // Actions - Motivation
+ clearMotivationMessage: () => void;
  // Accessibility actions
  setAnnouncement: (message: string | null) => void;
  clearError: () => void;
@@ -84,6 +90,8 @@ export const useAppStore = create<AppState>()(
      },
      timerSeconds: 0,
      isTimerRunning: false,
+     timerStartTime: null,
+     motivationMessage: null,
      announcement: null,
      isLoading: false,
      error: null,
@@ -142,10 +150,17 @@ export const useAppStore = create<AppState>()(
          durationSeconds: 0,
        };
 
+       // Get motivation message based on historical stats
+       const allStats = getTaskStats(tasks);
+       const taskStat = allStats.find(s => s.title === task.title);
+       const motivation = getMotivationMessage(taskStat);
+
        set((state) => ({
          activeTaskId: id,
          timerSeconds: 0,
          isTimerRunning: true,
+         timerStartTime: Date.now(),
+         motivationMessage: motivation,
          tasks: state.tasks.map((t) =>
            t.id === id
              ? { 
@@ -163,15 +178,22 @@ export const useAppStore = create<AppState>()(
      },
 
      pauseTask: (id) => {
-       const { tasks, timerSeconds } = get();
+       const { tasks, timerSeconds, timerStartTime } = get();
        const task = tasks.find((t) => t.id === id);
        if (!task || task.status !== 'in_progress') return;
 
        const now = new Date().toISOString();
 
+       // Calculate elapsed time if timer was running
+       let additionalSeconds = timerSeconds;
+       if (timerStartTime) {
+         additionalSeconds = Math.floor((Date.now() - timerStartTime) / 1000);
+       }
+
        set((state) => ({
          isTimerRunning: false,
-         timerSeconds: 0,
+         timerStartTime: null,
+         // Keep timerSeconds for display - don't reset to 0!
          tasks: state.tasks.map((t) => {
            if (t.id === id) {
              // Close the last open time log
@@ -182,7 +204,7 @@ export const useAppStore = create<AppState>()(
                  updatedLogs[updatedLogs.length - 1] = {
                    ...lastLog,
                    endTime: now,
-                   durationSeconds: timerSeconds,
+                   durationSeconds: additionalSeconds,
                  };
                }
              }
@@ -190,7 +212,7 @@ export const useAppStore = create<AppState>()(
                ...t, 
                status: 'paused', 
                timeLogs: updatedLogs,
-               totalDurationSeconds: t.totalDurationSeconds + timerSeconds,
+               totalDurationSeconds: t.totalDurationSeconds + additionalSeconds,
              };
            }
            return t;
@@ -220,8 +242,9 @@ export const useAppStore = create<AppState>()(
 
        set((state) => ({
          activeTaskId: id,
-         timerSeconds: 0,
+         // Keep timerSeconds - don't reset! Continue from where we left off
          isTimerRunning: true,
+         timerStartTime: Date.now(),
          tasks: state.tasks.map((t) =>
            t.id === id
              ? { ...t, status: 'in_progress', timeLogs: [...t.timeLogs, timeLog] }
@@ -235,12 +258,21 @@ export const useAppStore = create<AppState>()(
      },
 
      completeTask: (id) => {
-       const { tasks, userStats, timerSeconds } = get();
+       const { tasks, userStats, timerSeconds, timerStartTime } = get();
        const task = tasks.find((t) => t.id === id);
        if (!task || task.status === 'completed') return;
 
        const now = new Date().toISOString();
-       const currentSessionTime = task.status === 'in_progress' ? timerSeconds : 0;
+       
+       // Calculate current session time - include timerStartTime if running
+       let currentSessionTime = 0;
+       if (task.status === 'in_progress') {
+         currentSessionTime = timerSeconds;
+         if (timerStartTime) {
+           currentSessionTime += Math.floor((Date.now() - timerStartTime) / 1000);
+         }
+       }
+       
        const totalDuration = task.totalDurationSeconds + currentSessionTime;
        const xpGained = calculateXP(totalDuration);
 
@@ -260,7 +292,8 @@ export const useAppStore = create<AppState>()(
        set((state) => ({
          activeTaskId: state.activeTaskId === id ? null : state.activeTaskId,
          isTimerRunning: state.activeTaskId === id ? false : state.isTimerRunning,
-         timerSeconds: state.activeTaskId === id ? 0 : state.timerSeconds,
+         timerStartTime: state.activeTaskId === id ? null : state.timerStartTime,
+         timerSeconds: 0,
          userStats: {
            ...state.userStats,
            xp: state.userStats.xp + xpGained,
@@ -302,6 +335,17 @@ export const useAppStore = create<AppState>()(
     },
 
     // Add a manual time log
+    // Redo a completed task (reactivate it)
+    redoTask: (id) => {
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === id && t.status === 'completed'
+            ? { ...t, status: 'idle', completedAt: null }
+            : t
+        ),
+      }));
+    },
+
     addManualTimeLog: (id, durationSeconds, date) => {
       const newLog: TimeLog = {
         id: generateId(),
@@ -322,16 +366,31 @@ export const useAppStore = create<AppState>()(
     },
 
      // Timer Actions
-     startTimer: () => set({ isTimerRunning: true }),
-     pauseTimer: () => set({ isTimerRunning: false }),
-     resumeTimer: () => set({ isTimerRunning: true }),
-     stopTimer: () => set({ isTimerRunning: false, timerSeconds: 0 }),
+     startTimer: () => set((state) => ({ 
+       isTimerRunning: true, 
+       timerStartTime: state.timerStartTime || Date.now() 
+     })),
+     pauseTimer: () => set((state) => {
+       if (!state.timerStartTime) return { isTimerRunning: false };
+       const elapsed = Math.floor((Date.now() - state.timerStartTime) / 1000);
+       return { 
+         isTimerRunning: false, 
+         timerSeconds: state.timerSeconds + elapsed,
+         timerStartTime: null 
+       };
+     }),
+     resumeTimer: () => set({ isTimerRunning: true, timerStartTime: Date.now() }),
+     stopTimer: () => set({ isTimerRunning: false, timerSeconds: 0, timerStartTime: null }),
      
      tick: () => {
-       set((state) => ({ timerSeconds: state.timerSeconds + 1 }));
+       set((state) => {
+         if (!state.isTimerRunning || !state.timerStartTime) return state;
+         const elapsed = Math.floor((Date.now() - state.timerStartTime) / 1000);
+         return { timerSeconds: state.timerSeconds + elapsed, timerStartTime: Date.now() };
+       });
      },
      
-     resetTimer: () => set({ timerSeconds: 0, isTimerRunning: false }),
+     resetTimer: () => set({ timerSeconds: 0, isTimerRunning: false, timerStartTime: null }),
 
      // User Stats Actions
      addXP: (amount) => {
@@ -362,6 +421,9 @@ export const useAppStore = create<AppState>()(
        });
        setTimeout(() => set({ announcement: null }), 1500);
      },
+
+     // Motivation
+     clearMotivationMessage: () => set({ motivationMessage: null }),
 
      // Accessibility
      setAnnouncement: (message) => set({ announcement: message }),
@@ -397,8 +459,12 @@ export const useAppStore = create<AppState>()(
      partialize: (state) => ({
        tasks: state.tasks,
        userStats: state.userStats,
+       timerSeconds: state.timerSeconds,
+       isTimerRunning: state.isTimerRunning,
+       timerStartTime: state.timerStartTime,
+       activeTaskId: state.activeTaskId,
      }),
-     version: 1,
+     version: 2,
    }
  )
 );
