@@ -26,22 +26,15 @@ const TimerStatsDisplay = ({ taskTitle, currentSeconds }: { taskTitle: string; c
     <div className="mt-6 space-y-4">
       {/* Progress bar */}
       <div className="relative">
-        <div 
-          className="h-2 rounded-full overflow-hidden"
-          style={{ backgroundColor: 'var(--bg-hover)' }}
-        >
+        <div className="h-2 rounded-full overflow-hidden bg-zinc-800">
           <div 
-            className="h-full transition-all duration-500 ease-out rounded-full"
-            style={{ 
-              width: `${progressPercent}%`, 
-              backgroundColor: isUnderAverage ? 'var(--accent-green)' : 'var(--accent-red)'
-            }}
+            className={`h-full transition-all duration-500 ease-out rounded-full ${isUnderAverage ? 'bg-green-500' : 'bg-red-500'}`}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
         {/* Marker for average */}
         <div 
-          className="absolute top-0 w-0.5 h-2 bg-text-muted opacity-50"
-          style={{ left: '100%' }}
+          className="absolute top-0 w-0.5 h-2 bg-zinc-500 opacity-50 left-full"
           title="Genomsnitt"
         />
       </div>
@@ -109,18 +102,11 @@ const MotivationBanner = ({ message, onClose }: { message: { emoji: string; text
       aria-live="polite"
     >
       <div 
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg border"
-        style={{ 
-          backgroundColor: 'var(--bg-card)',
-          borderColor: message.type === 'record' ? 'rgba(168, 85, 247, 0.5)' : 'rgba(34, 197, 94, 0.3)'
-        }}
+        className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg border bg-zinc-900 ${message.type === 'record' ? 'border-purple-500/50' : 'border-green-500/30'}`}
       >
         <span className="text-2xl" aria-hidden="true">{message.emoji}</span>
-        <div className="max-w-[280px]">
-          <p 
-            className="text-sm font-medium"
-            style={{ color: 'var(--text-primary)' }}
-          >
+        <div className="max-w-70">
+          <p className="text-sm font-medium text-white">
             {message.text}
           </p>
         </div>
@@ -171,7 +157,7 @@ function App() {
  const completedTasks = tasks.filter(t => t.status === 'completed');
 
  return (
-   <div className="min-h-screen flex flex-col safe-area-inset" style={{ backgroundColor: 'var(--bg-dark)' }}>
+   <div className="min-h-screen flex flex-col safe-area-inset bg-black">
      {/* Grain texture overlay */}
      <div className="grain-overlay" aria-hidden="true" />
 
@@ -185,36 +171,27 @@ function App() {
 
      {/* Header - Sticky with proper semantics */}
      <header 
-       className="sticky top-0 z-20 px-4 py-4 shadow-sm"
-       style={{ 
-         backgroundColor: 'rgba(10, 10, 10, 0.95)', 
-         backdropFilter: 'blur(12px)',
-         borderBottom: '1px solid var(--border)'
-       }}
+       className="sticky top-0 z-20 px-4 py-4 shadow-sm bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-800"
        role="banner"
      >
        <div className="max-w-lg mx-auto w-full">
-         <div className="flex items-center justify-between min-h-[44px]">
+         <div className="flex items-center justify-between min-h-11">
            <div className="flex-1">
-             <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>
+             <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight leading-tight text-white">
                Beast Mode
              </h1>
-             <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Focus. Track. Conquer.</p>
+             <p className="text-xs mt-0.5 text-zinc-400">Focus. Track. Conquer.</p>
            </div>
            
            {/* Beast Mode indicator with proper contrast */}
            {userStats.isBeastModeActive && (
              <div 
-               className="flex items-center gap-1.5 rounded-full px-3 py-1.5 min-h-[32px] animate-pulse-glow"
-               style={{ 
-                 backgroundColor: 'rgba(168, 85, 247, 0.15)', 
-                 border: '1px solid rgba(168, 85, 247, 0.4)'
-               }}
+               className="flex items-center gap-1.5 rounded-full px-3 py-1.5 min-h-8 animate-pulse-glow bg-purple-500/15 border border-purple-500/40"
                role="status"
                aria-label="Beast mode is active"
              >
-               <Trophy className="w-4 h-4" style={{ color: 'var(--accent-purple)' }} aria-hidden="true" />
-               <span className="text-xs font-bold tracking-wide uppercase" style={{ color: 'var(--accent-purple)' }}>
+               <Trophy className="w-4 h-4 text-purple-500" aria-hidden="true" />
+               <span className="text-xs font-bold tracking-wide uppercase text-purple-500">
                  Beast
                </span>
              </div>
@@ -244,23 +221,17 @@ function App() {
          {/* Timer Display - High contrast, large touch targets */}
          {activeTask && (
            <section 
-             className="rounded-2xl p-6 sm:p-8 text-center animate-fade-in delay-100"
-             style={{ 
-               backgroundColor: 'var(--bg-card)', 
-               border: '1px solid var(--border)',
-               boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4)'
-             }}
+             className="rounded-2xl p-6 sm:p-8 text-center animate-fade-in delay-100 bg-zinc-900 border border-zinc-800 shadow-2xl shadow-black/40"
              aria-label={`Active timer for ${activeTask.title}`}
            >
-             <div className="text-sm sm:text-base mb-4 truncate font-medium px-2" style={{ color: 'var(--text-secondary)' }}>
+             <div className="text-sm sm:text-base mb-4 truncate font-medium px-2 text-zinc-400">
                {activeTask.title}
              </div>
              
              <div 
-               className="text-5xl sm:text-6xl font-bold tabular-nums tracking-tight leading-none"
-               style={{ color: isTimerRunning ? 'var(--accent-green)' : 'var(--accent-yellow)' }}
+               className={`text-5xl sm:text-6xl font-bold tabular-nums tracking-tight leading-none ${isTimerRunning ? 'text-green-500' : 'text-yellow-500'}`}
                role="timer"
-               aria-live={isTimerRunning ? 'polite' : 'off'}
+               aria-live={isTimerRunning ? 'polite' : undefined}
                aria-atomic="true"
              >
                <span className="sr-only">Elapsed time: </span>
@@ -269,11 +240,7 @@ function App() {
              
              <div className="flex items-center justify-center gap-2 mt-4">
                <span 
-                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider"
-                 style={{ 
-                   backgroundColor: isTimerRunning ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
-                   color: isTimerRunning ? 'var(--accent-green)' : 'var(--accent-yellow)'
-                 }}
+                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider ${isTimerRunning ? 'bg-green-500/15 text-green-500' : 'bg-yellow-500/15 text-yellow-500'}`}
                  role="status"
                >
                  {isTimerRunning ? (
@@ -317,11 +284,10 @@ function App() {
              <section aria-labelledby="active-tasks-heading" className="animate-fade-in delay-400">
                <h2 
                  id="active-tasks-heading" 
-                 className="text-xs font-semibold mb-3 px-1 uppercase tracking-wider"
-                 style={{ color: 'var(--text-secondary)' }}
+                 className="text-xs font-semibold mb-3 px-1 uppercase tracking-wider text-zinc-400"
                >
                  Active
-                 <span className="ml-1.5 font-normal" style={{ color: 'var(--text-muted)' }}>
+                 <span className="ml-1.5 font-normal text-zinc-500">
                    ({activeTasks.length})
                  </span>
                </h2>
@@ -344,11 +310,10 @@ function App() {
              <section aria-labelledby="completed-tasks-heading" className="animate-fade-in delay-500">
                <h2 
                  id="completed-tasks-heading" 
-                 className="text-xs font-semibold mb-3 px-1 uppercase tracking-wider"
-                 style={{ color: 'var(--text-secondary)' }}
+                 className="text-xs font-semibold mb-3 px-1 uppercase tracking-wider text-zinc-400"
                >
                  Completed
-                 <span className="ml-1.5 font-normal" style={{ color: 'var(--text-muted)' }}>
+                 <span className="ml-1.5 font-normal text-zinc-500">
                    ({completedTasks.length})
                  </span>
                </h2>
@@ -366,8 +331,7 @@ function App() {
                
                {completedTasks.length > 5 && (
                  <button 
-                   className="w-full text-center text-sm mt-4 py-3 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black min-h-[44px]"
-                   style={{ color: 'var(--text-muted)' }}
+                   className="w-full text-center text-sm mt-4 py-3 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black min-h-11 text-zinc-500"
                    aria-label={`Show ${completedTasks.length - 5} more completed tasks`}
                  >
                    +{completedTasks.length - 5} more
@@ -391,8 +355,8 @@ function App() {
                >
                  🎯
                </div>
-               <p className="text-lg font-medium" style={{ color: 'var(--text-secondary)' }}>No tasks yet</p>
-               <p className="text-sm mt-2 px-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+               <p className="text-lg font-medium text-zinc-400">No tasks yet</p>
+               <p className="text-sm mt-2 px-4 leading-relaxed text-zinc-500">
                  Add a task above to start tracking your focus time
                </p>
              </div>
@@ -405,7 +369,7 @@ function App() {
      </main>
 
      {/* Footer for additional info if needed */}
-     <footer className="px-4 py-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+     <footer className="px-4 py-4 text-center text-xs text-zinc-500">
        <div className="max-w-lg mx-auto">
          <p>Keyboard shortcuts: Enter to add, Space to toggle timer</p>
        </div>

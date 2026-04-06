@@ -1,6 +1,6 @@
 import React, { useState, useId, useRef, useEffect } from 'react';
-import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle, Timer, RotateCcw, TrendingUp, TrendingDown, Gauge, BarChart3 } from 'lucide-react';
-import type { Task, TaskStats } from '../types';
+import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle, Timer, RotateCcw, TrendingUp, TrendingDown,  BarChart3 } from 'lucide-react';
+import type { Task } from '../types';
 import { formatDuration, getTaskStats } from '../types';
 import { useAppStore } from '../store';
 import { Button } from '@base-ui/react/button';
@@ -76,7 +76,7 @@ interface TaskWithStats extends Task {
 
 const roundBtnBase = `
   rounded-full flex items-center justify-center
-  min-w-[48px] min-h-[48px] sm:min-w-[44px] sm:min-h-[44px]
+  min-w-[48px] min-h-[48px] sm:min-w-11 sm:min-h-11
   p-3 sm:p-2.5 transition-all duration-200
   active:scale-95 cursor-pointer
   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900
@@ -87,7 +87,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
   const [editTitle, setEditTitle] = useState(task.title);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showTimeEdit, setShowTimeEdit] = useState(false);
-  const [editMinutes, setEditMinutes] = useState();
+  const [editMinutes, setEditMinutes] = useState<string>();
   const inputId = useId();
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const confirmDeleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -153,7 +153,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
   };
 
   const handleTimeEditSave = () => {
-    const mins = parseInt(editMinutes) || 0;
+    const mins = parseInt(editMinutes??"0") || 0;
     if (mins > 0) {
       updateTaskTime(task.id, mins * 60);
     }
@@ -196,7 +196,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
           {/* Status dot */}
           <div
             className={`
-              flex-shrink-0 w-3 h-3 rounded-full ring-2 ring-zinc-900
+              shrink-0 w-3 h-3 rounded-full ring-2 ring-zinc-900
               ${isCompleted
                 ? 'bg-green-500'
                 : isActive
@@ -209,7 +209,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
 
           {/* Main action buttons */}
           <div
-            className="flex items-center gap-1.5 flex-shrink-0"
+            className="flex items-center gap-1.5 shrink-0"
             role="group"
             aria-label={`Actions for ${task.title}`}
           >
@@ -220,6 +220,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                     type="button"
                     onClick={handleStart}
                     aria-label={`Start ${task.title}`}
+                    title={`Start ${task.title}`}
                     className={`${roundBtnBase} bg-green-500 hover:bg-green-600 text-white focus:ring-green-500`}
                   >
                     <Play className="w-5 h-5 fill-current" aria-hidden="true" />
@@ -231,6 +232,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                     type="button"
                     onClick={handlePause}
                     aria-label={`Pause ${task.title}`}
+                    title={`Pause ${task.title}`}
                     className={`${roundBtnBase} bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500`}
                   >
                     <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
@@ -243,6 +245,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                       type="button"
                       onClick={handleResume}
                       aria-label={`Resume ${task.title}`}
+                      title={`Resume ${task.title}`}
                       className={`${roundBtnBase} bg-green-500 hover:bg-green-600 text-white focus:ring-green-500`}
                     >
                       <Play className="w-5 h-5 fill-current" aria-hidden="true" />
@@ -252,6 +255,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                       type="button"
                       onClick={handleComplete}
                       aria-label={`Complete ${task.title}`}
+                      title={`Complete ${task.title}`}
                       className={`${roundBtnBase} bg-green-500/80 hover:bg-green-500 text-white focus:ring-green-500`}
                     >
                       <Check className="w-5 h-5" aria-hidden="true" />
@@ -303,8 +307,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 <Field.Label htmlFor={inputId} className="sr-only">
                   Edit task title
                 </Field.Label>
-                <input
-                  ref={inputRef}
+                <Field.Control ref={inputRef}
                   id={inputId}
                   type="text"
                   value={editTitle}
@@ -314,18 +317,17 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                   }}
                   className="
                     w-full bg-zinc-700 border border-zinc-600 rounded-xl
-                    px-3 py-2.5 text-zinc-100 text-base min-h-[44px]
+                    px-3 py-2.5 text-zinc-100 text-base min-h-11
                     focus:outline-none focus:ring-2 focus:ring-green-500
                     placeholder:text-zinc-500
-                  "
-                />
+                  "/>
               </Field.Root>
 
               <Button
                 type="submit"
                 aria-label="Save changes"
                 className="
-                  p-2.5 rounded-xl min-w-[44px] min-h-[44px]
+                  p-2.5 rounded-xl min-w-11 min-h-11
                   flex items-center justify-center cursor-pointer
                   bg-green-500 hover:bg-green-600 text-white
                   transition-colors focus:outline-none focus:ring-2
@@ -340,7 +342,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 onClick={handleCancelEdit}
                 aria-label="Cancel editing"
                 className="
-                  p-2.5 rounded-xl min-w-[44px] min-h-[44px]
+                  p-2.5 rounded-xl min-w-11 min-h-11
                   flex items-center justify-center cursor-pointer
                   bg-zinc-800 hover:bg-zinc-700 text-zinc-100
                   transition-colors focus:outline-none focus:ring-2
@@ -365,7 +367,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500 mt-1.5">
                   <div className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                    <Clock className="w-4 h-4 shrink-0" aria-hidden="true" />
                     <time
                       dateTime={`PT${Math.floor(currentDuration / 60)}M`}
                       className="tabular-nums"
@@ -390,8 +392,8 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                     onClick={() => setIsEditing(true)}
                     aria-label={`Edit ${task.title}`}
                     className="
-                      flex-shrink-0 p-2.5 rounded-xl
-                      min-w-[44px] min-h-[44px] flex items-center justify-center
+                      shrink-0 p-2.5 rounded-xl
+                      min-w-11 min-h-11 flex items-center justify-center
                       text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800
                       transition-colors cursor-pointer
                       focus:outline-none focus:ring-2 focus:ring-green-500
@@ -405,8 +407,8 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                     onClick={handleTimeEditOpen}
                     aria-label={`Edit time for ${task.title}`}
                     className="
-                      flex-shrink-0 p-2.5 rounded-xl
-                      min-w-[44px] min-h-[44px] flex items-center justify-center
+                      shrink-0 p-2.5 rounded-xl
+                      min-w-11 min-h-11 flex items-center justify-center
                       text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800
                       transition-colors cursor-pointer
                       focus:outline-none focus:ring-2 focus:ring-yellow-500
@@ -434,7 +436,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
         >
           <div className="bg-zinc-900 rounded-2xl p-6 max-w-sm w-full border border-zinc-700 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 flex-shrink-0 text-red-500" aria-hidden="true" />
+              <AlertTriangle className="w-6 h-6 shrink-0 text-red-500" aria-hidden="true" />
               <h2 id="delete-title" className="text-lg font-bold text-zinc-100">
                 Delete Task?
               </h2>
@@ -451,7 +453,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 type="button"
                 onClick={cancelDelete}
                 className="
-                  px-5 py-2.5 rounded-xl min-h-[44px] font-medium cursor-pointer
+                  px-5 py-2.5 rounded-xl min-h-11 font-medium cursor-pointer
                   bg-zinc-800 hover:bg-zinc-700 text-zinc-100
                   transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-500
                 "
@@ -464,7 +466,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 onClick={confirmDelete}
                 ref={confirmDeleteButtonRef}
                 className="
-                  px-5 py-2.5 rounded-xl min-h-[44px] font-medium cursor-pointer
+                  px-5 py-2.5 rounded-xl min-h-11 font-medium cursor-pointer
                   bg-red-500 hover:bg-red-600 text-white
                   transition-colors focus:outline-none focus:ring-2 focus:ring-red-500
                 "
@@ -488,7 +490,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
         >
           <div className="bg-zinc-900 rounded-2xl p-6 max-w-sm w-full border border-zinc-700 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
-              <Timer className="w-6 h-6 flex-shrink-0 text-yellow-500" aria-hidden="true" />
+              <Timer className="w-6 h-6 shrink-0 text-yellow-500" aria-hidden="true" />
               <h2 id="time-title" className="text-lg font-bold text-zinc-100">
                 Adjust Time
               </h2>
@@ -523,7 +525,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 type="button"
                 onClick={() => setShowTimeEdit(false)}
                 className="
-                  px-5 py-2.5 rounded-xl min-h-[44px] font-medium cursor-pointer
+                  px-5 py-2.5 rounded-xl min-h-11 font-medium cursor-pointer
                   bg-zinc-800 hover:bg-zinc-700 text-zinc-100
                   transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-500
                 "
@@ -535,7 +537,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                 type="button"
                 onClick={handleTimeEditSave}
                 className="
-                  px-5 py-2.5 rounded-xl min-h-[44px] font-medium cursor-pointer
+                  px-5 py-2.5 rounded-xl min-h-11 font-medium cursor-pointer
                   bg-yellow-500 hover:bg-yellow-600 text-white
                   transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500
                 "

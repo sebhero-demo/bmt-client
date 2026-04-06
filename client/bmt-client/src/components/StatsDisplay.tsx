@@ -13,12 +13,12 @@ return (
   >
     {/* XP */}
     <div 
-      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-[80px]"
+      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-20"
       role="region"
       aria-label="Experience points"
     >
       <Zap 
-        className="text-accent-yellow mb-1.5 w-5 h-5 flex-shrink-0" 
+        className="text-accent-yellow mb-1.5 w-5 h-5 shrink-0" 
         aria-hidden="true" 
       />
       <span 
@@ -34,12 +34,12 @@ return (
 
     {/* Streak */}
     <div 
-      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-[80px]"
+      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-20"
       role="region"
       aria-label="Current streak"
     >
       <Flame 
-        className="text-accent-yellow mb-1.5 w-5 h-5 flex-shrink-0" 
+        className="text-accent-yellow mb-1.5 w-5 h-5 shrink-0" 
         aria-hidden="true" 
       />
       <span 
@@ -55,7 +55,7 @@ return (
 
     {/* Beast Mode */}
     <div 
-      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-[80px]"
+      className="bg-bg-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-border min-h-20"
       role="region"
       aria-label="Beast mode toggle"
     >
@@ -64,9 +64,9 @@ return (
         onCheckedChange={toggleBeastMode}
         className={`
           w-12 sm:w-14 h-7 sm:h-8 rounded-full transition-all duration-200 relative
-          data-[checked]:bg-accent-purple data-[unchecked]:bg-bg-hover
+          data-checked:bg-accent-purple data-unchecked:bg-bg-hover
           focus:outline-none focus:ring-2 focus:ring-accent-purple focus:ring-offset-2 
-          focus:ring-offset-bg-card cursor-pointer touch-manipulation min-h-[44px]
+          focus:ring-offset-bg-card cursor-pointer touch-manipulation min-h-11
         `}
         aria-label="Toggle Beast Mode"
       >
@@ -75,14 +75,14 @@ return (
             absolute top-0.5 left-0.5 sm:top-1 sm:left-1 
             w-6 h-6 rounded-full bg-white shadow-lg
             transition-transform duration-200 ease-spring
-            data-[checked]:translate-x-5 sm:data-[checked]:translate-x-6
+            data-checked:translate-x-5 sm:data-checked:translate-x-6
           " 
         />
       </Switch.Root>
       
       <div className="flex items-center gap-1 mt-1.5">
         <Trophy 
-          className={`w-4 h-4 flex-shrink-0 ${userStats.isBeastModeActive ? 'text-accent-purple' : 'text-text-muted'}`}
+          className={`w-4 h-4 shrink-0 ${userStats.isBeastModeActive ? 'text-accent-purple' : 'text-text-muted'}`}
           aria-hidden="true" 
         />
         <span 
@@ -123,19 +123,19 @@ return (
     >
       {taskStats.slice(0, 5).map((stat) => (
         <li key={stat.title}>
-          <div className="flex items-center justify-between text-sm min-h-[44px]">
+          <div className="flex items-center justify-between text-sm min-h-11">
             <span 
               className="truncate text-text-primary font-medium pr-4"
               title={stat.title}
             >
               {stat.title}
             </span>
-            <div className="flex items-center gap-2 sm:gap-3 text-text-muted flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 text-text-muted shrink-0">
               <span 
-                className="bg-bg-hover px-2 py-1 rounded text-xs font-medium min-w-[24px] text-center"
+                className="bg-bg-hover px-2 py-1 rounded text-xs font-medium min-w-6 text-center"
                 aria-label={`Completed ${stat.completionCount} times`}
               >
-                {stat.completionCount}×
+                {stat.completionCount}x
               </span>
               <span className="text-xs tabular-nums">
                 {Math.round(stat.avgTimeSeconds / 60)}m <span className="sr-only">average</span>

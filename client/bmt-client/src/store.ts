@@ -64,13 +64,20 @@ const calculateXP = (seconds: number): number => {
 };
 
 const isToday = (dateString: string): boolean => {
- const date = new Date(dateString);
- const today = new Date();
- return (
-   date.getDate() === today.getDate() &&
-   date.getMonth() === today.getMonth() &&
-   date.getFullYear() === today.getFullYear()
- );
+  try {
+    const date = Temporal.Instant.from(dateString).toZonedDateTimeISO(Temporal.Now.timeZoneId());
+    const today = Temporal.Now.plainDateISO();
+    return date.toPlainDate().equals(today);
+  } catch {
+    // Fallback for legacy timestamps
+    const date = new Date(dateString);
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  }
 };
 
 // ============================================
