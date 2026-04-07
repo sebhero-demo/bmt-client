@@ -28,12 +28,13 @@
 - [ ] **F3:** Google Keep import — snabb-input från Keep
 - [ ] **F4:** Google Drive — koppla filer till tasks
 - [ ] **F5:** Weekly retrospective summary — veckovis statistik
-- [ ] **F6:** Database/backend — PostgreSQL/Firebase för cross-platform sync
+- [ ] **F6:** Database/backend — SQLite (sql.js) för local DB
+- [ ] **F7:** Authentication — lokalt med PIN/lösen
 
 ### Technical
 
 - [ ] **T1:** React Native — mobilapp version
-- [ ] **T2:** API-lager för Google integrations
+- [ ] **T2:** Bun + Electron // mobile-first desktop app
 - [ ] **T3:** Unit tests — fixa 6 failing tester
 
 ---
