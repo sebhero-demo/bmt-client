@@ -126,7 +126,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ taskId: propId, task: propTa
     <>
       <article
         className={`
-          flex flex-col gap-3 p-3 sm:p-4 rounded-2xl transition-all duration-200
+          flex flex-col gap-3 p-4 sm:p-5 rounded-2xl transition-all duration-200
           ${isActive ? 'bg-green-500/10 border-2 border-green-500/30' : 'bg-zinc-900 border border-zinc-700 hover:border-zinc-500'}
           ${isCompleted ? 'opacity-75' : ''}
         `}
