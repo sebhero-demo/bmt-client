@@ -15,9 +15,12 @@ const StatsInfo = ({ taskTitle, currentDuration, status }: { taskTitle: string; 
   // If no historical stats, show "New task" indicator for motivation
   if (!taskStat) {
     return (
-      <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs bg-zinc-800/50 text-zinc-500 mt-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/50" aria-hidden="true" />
-        <span>Ny uppgift</span>
+      <span className="flex flex-col items-start gap-1 px-2 py-1 rounded-lg text-xs bg-zinc-800/50 text-zinc-500 mt-2">
+        <span className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/50" aria-hidden="true" />
+          <span>Ny uppgift</span>
+        </span>
+        <span className="text-[10px] text-zinc-600">total:{`${currentDuration}`}s</span>
       </span>
     );
   }
@@ -39,10 +42,11 @@ const StatsInfo = ({ taskTitle, currentDuration, status }: { taskTitle: string; 
       )}
       <span
         className="flex items-center gap-1 px-2 py-1 rounded-lg font-semibold bg-zinc-800 text-zinc-300"
+        aria-label={`Medel ${taskStat.avgTimeSeconds} sekunder, uppgiftens totalspec: ${task.totalDurationSeconds} sekunder`}
       >
         <BarChart3 className="w-3.5 h-3.5" aria-hidden="true" />
-        <span>Medel</span>
-        <span className="font-mono">{formatDuration(taskStat.avgTimeSeconds)}</span>
+        <span>{formatDuration(taskStat.avgTimeSeconds)}</span>
+        <span className="text-[9px] text-zinc-500">({task.totalDurationSeconds}s)</span>
       </span>
       {taskStat.completionCount > 1 && (
         <span
@@ -381,6 +385,10 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                       {task.timeLogs.length} sessions
                     </span>
                   )}
+                  {/* DEBUG: show actual totalDurationSeconds */}
+                  <span className="text-[10px] text-red-400 font-mono">
+                    ({task.totalDurationSeconds}s)
+                  </span>
                   {/* Display min/max/avg if available - show for any task with history */}
                   <StatsInfo taskTitle={task.title} currentDuration={currentDuration} status={task.status} />
                 </div>

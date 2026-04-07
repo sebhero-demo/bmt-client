@@ -86,6 +86,10 @@ export const getTaskStats = (tasks: Task[]): TaskStats[] => {
   const stats: TaskStats[] = [];
   taskMap.forEach((taskGroup, title) => {
     const durations = taskGroup.map(t => t.totalDurationSeconds);
+    // Skip groups with no valid durations
+    if (durations.length === 0 || durations.every(d => d === 0)) {
+      return;
+    }
     const min = Math.min(...durations);
     const max = Math.max(...durations);
     const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
