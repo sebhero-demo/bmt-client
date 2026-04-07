@@ -1,4 +1,19 @@
-# Beast Mode Todo — TODO + Backlog
+# 🚀 BEAST MODE TODO — KLAR!
+
+**Features byggda:**
+- Timer med play/pause/resume
+- XP + Streaks + Beast Mode
+- Min/Max/Avg stats
+- Weekly summary
+- Design polish (D1-D5)
+- Manual time edit
+- Google Calendar service
+- Google Keep service
+- Google Drive service
+- SQLite DB (sql.js)
+- Electron-ready
+
+**Status:** 🟢 KLART
 
 ## ✅ Implemented Features
 
