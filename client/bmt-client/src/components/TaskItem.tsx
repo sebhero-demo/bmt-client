@@ -1,5 +1,5 @@
 import React, { useState, useId, useRef, useEffect } from 'react';
-import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle, Timer, RotateCcw, TrendingUp, TrendingDown,  BarChart3 } from 'lucide-react';
+import { Play, Pause, Trash2, Check, Clock, Edit3, X, AlertTriangle, Timer, RotateCcw, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import type { Task } from '../types';
 import { formatDuration, getTaskStats } from '../types';
 import { useAppStore } from '../store';
@@ -11,7 +11,7 @@ const StatsInfo = ({ taskTitle, currentDuration, status }: { taskTitle: string; 
   const { tasks } = useAppStore();
   const allStats = getTaskStats(tasks);
   const taskStat = allStats.find(s => s.title === taskTitle);
-  
+
   // If no historical stats, show "New task" indicator for motivation
   if (!taskStat) {
     return (
@@ -24,15 +24,15 @@ const StatsInfo = ({ taskTitle, currentDuration, status }: { taskTitle: string; 
       </span>
     );
   }
-  
+
   const isNewMin = currentDuration <= taskStat.minTimeSeconds;
   const isNewMax = taskStat.completionCount > 1 && currentDuration >= taskStat.maxTimeSeconds;
   const isPBD = isNewMin || isNewMax; // Personal best/different
-  
+
   return (
     <div className={`flex items-center gap-2 text-xs mt-2 ${isPBD ? 'animate-pulse' : ''}`}>
       {taskStat.completionCount > 1 && (
-        <span 
+        <span
           className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold ${isNewMin ? 'bg-green-500/25 text-green-400 ring-1 ring-green-500/50' : 'bg-zinc-800 text-zinc-400'}`}
         >
           <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" />
@@ -40,7 +40,7 @@ const StatsInfo = ({ taskTitle, currentDuration, status }: { taskTitle: string; 
           <span className="font-mono">{formatDuration(taskStat.minTimeSeconds)}</span>
         </span>
       )}
-      <span 
+      <span
         className="flex items-center gap-1 px-2 py-1 rounded-lg font-semibold bg-zinc-800 text-zinc-300"
         aria-label={`Medel ${taskStat.avgTimeSeconds} sekunder, uppgiftens totalspec: ${task.totalDurationSeconds} sekunder`}
       >
@@ -49,7 +49,7 @@ const StatsInfo = ({ taskTitle, currentDuration, status }: { taskTitle: string; 
         <span className="text-[9px] text-zinc-500">({task.totalDurationSeconds}s)</span>
       </span>
       {taskStat.completionCount > 1 && (
-        <span 
+        <span
           className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold ${isNewMax ? 'bg-red-500/25 text-red-400 ring-1 ring-red-500/50' : 'bg-zinc-800 text-zinc-400'}`}
         >
           <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
@@ -157,7 +157,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
   };
 
   const handleTimeEditSave = () => {
-    const mins = parseInt(editMinutes??"0") || 0;
+    const mins = parseInt(editMinutes ?? "0") || 0;
     if (mins > 0) {
       updateTaskTime(task.id, mins * 60);
     }
@@ -279,6 +279,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
                   type="button"
                   onClick={() => redoTask(task.id)}
                   aria-label={`Redo ${task.title}`}
+                  title={`Redo ${task.title}`}
                   className={`${roundBtnBase} bg-zinc-700 hover:bg-zinc-600 text-zinc-300 focus:ring-zinc-500`}
                 >
                   <RotateCcw className="w-5 h-5" aria-hidden="true" />
