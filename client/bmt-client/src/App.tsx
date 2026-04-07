@@ -2,6 +2,7 @@ import { type JSX, useRef, useEffect } from "react";
 import { AddTask } from "./components/AddTask";
 import EmptyState from "./components/EmptyState";
 import Footer from "./components/Footer";
+import Help from "./components/Help";
 import Header from "./components/Header";
 import MotivationBanner from "./components/MotivationBanner";
 import { StatsDisplay, TaskStatsDisplay } from "./components/StatsDisplay";
@@ -98,6 +99,7 @@ export default function App(): JSX.Element {
       </main>
 
       <Footer />
+      <Help />
     </div>
   );
 }
