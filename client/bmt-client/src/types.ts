@@ -7,19 +7,25 @@ export type TaskStatus = 'idle' | 'in_progress' | 'paused' | 'completed';
 export interface TimeLog {
   id: string;
   startTime: string;      // ISO string
-  endTime: string | null; // ISO string
-  durationSeconds: number;
+  endTime: string | null; // ISO string or null while running
+  durationSeconds: number; // 0 while running, >0 for closed/manual logs
 }
+
+
 
 export interface Task {
   id: string;
-  title: string;          // Used to group recurring tasks for Min/Max/Avg
-  status: TaskStatus;
+  title: string;
+  status: 'idle' | 'in_progress' | 'paused' | 'completed';
   timeLogs: TimeLog[];
-  totalDurationSeconds: number; 
+  totalDurationSeconds: number;
   createdAt: string;
   completedAt: string | null;
-  googleDriveLink?: string; // Optional integration link
+  // computed stats (optional on older tasks)
+  minTimeSeconds?: number;
+  maxTimeSeconds?: number;
+  avgTimeSeconds?: number;
+  runsCount?: number;
 }
 
 export interface UserStats {
@@ -54,7 +60,7 @@ export const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
@@ -71,38 +77,38 @@ export const formatTime = (seconds: number): string => {
 };
 
 export const getTaskStats = (tasks: Task[]): TaskStats[] => {
-  const taskMap = new Map<string, Task[]>();
-  
-  // Group completed tasks by title
-  tasks.forEach(task => {
-    if (task.status === 'completed' && task.completedAt) {
-      const existing = taskMap.get(task.title) || [];
-      existing.push(task);
-      taskMap.set(task.title, existing);
+  const map = new Map<string, number[]>();
+
+  // Collect durations (per run) for each title from all tasks' timeLogs
+  for (const task of tasks) {
+    if (!task.timeLogs?.length) continue;
+    for (const log of task.timeLogs) {
+      const d = typeof log.durationSeconds === 'number' ? log.durationSeconds : 0;
+      if (d > 0) {
+        const arr = map.get(task.title) ?? [];
+        arr.push(d);
+        map.set(task.title, arr);
+      }
     }
-  });
-  
-  // Calculate stats for each group
+  }
+
   const stats: TaskStats[] = [];
-  taskMap.forEach((taskGroup, title) => {
-    const durations = taskGroup.map(t => t.totalDurationSeconds);
-    // Skip groups with no valid durations
-    if (durations.length === 0 || durations.every(d => d === 0)) {
-      return;
-    }
+  map.forEach((durations, title) => {
+    if (!durations.length) return;
+    const total = durations.reduce((a, b) => a + b, 0);
     const min = Math.min(...durations);
     const max = Math.max(...durations);
-    const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
-    
+    const avg = Math.round(total / durations.length);
+
     stats.push({
       title,
       minTimeSeconds: min,
       maxTimeSeconds: max,
-      avgTimeSeconds: Math.round(avg),
-      completionCount: taskGroup.length,
+      avgTimeSeconds: avg,
+      completionCount: durations.length, // number of runs
     });
   });
-  
+
   return stats.sort((a, b) => b.completionCount - a.completionCount);
 };
 
