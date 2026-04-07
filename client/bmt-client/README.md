@@ -38,4 +38,4 @@ Live: [beast-mode-todo.vercel.app](https://beast-mode-todo.vercel.app)
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+Apache 2.0 — see [LICENSE](LICENSE) for details.
