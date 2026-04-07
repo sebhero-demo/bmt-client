@@ -11,7 +11,6 @@ type Props = {
 };
 
 export default function TimerPanel({ activeTaskTitle, timerSeconds, isTimerRunning }: Props): JSX.Element {
-  // We only read actions when needed; component receives timer state as props for render stability
   const { /* start/pause/resume/complete handlers could be selected here if rendering controls are added */ } = useAppStore();
 
   const timerLabel = useMemo(() => (isTimerRunning ? 'Running' : 'Paused'), [isTimerRunning]);
@@ -21,10 +20,18 @@ export default function TimerPanel({ activeTaskTitle, timerSeconds, isTimerRunni
       className="rounded-2xl p-6 sm:p-8 text-center animate-fade-in delay-100 bg-zinc-900 border border-zinc-800 shadow-2xl shadow-black/40"
       aria-label={`Active timer for ${activeTaskTitle}`}
     >
-      <div className="text-sm sm:text-base mb-4 truncate font-medium px-2 text-zinc-400">{activeTaskTitle}</div>
+      {/* Task title - improved spacing */}
+      <div className="text-base sm:text-lg mb-6 truncate font-medium px-4 text-zinc-300 leading-relaxed">
+        {activeTaskTitle}
+      </div>
 
+      {/* Timer display - BIGGER with visual punch */}
       <div
-        className={`text-5xl sm:text-6xl font-bold tabular-nums tracking-tight leading-none ${isTimerRunning ? 'text-green-500' : 'text-yellow-500'}`}
+        className={`text-6xl sm:text-7xl font-display font-black tabular-nums tracking-tighter leading-none ${
+          isTimerRunning 
+            ? 'text-green-500 drop-shadow-[0_0_20px_rgba(34,197,94,0.5)]' 
+            : 'text-yellow-500 drop-shadow-[0_0_20px_rgba(234,179,8,0.3)]'
+        } ${isTimerRunning ? 'animate-pulse-glow' : ''}`}
         role="timer"
         aria-live={isTimerRunning ? 'polite' : undefined}
         aria-atomic="true"
@@ -33,19 +40,29 @@ export default function TimerPanel({ activeTaskTitle, timerSeconds, isTimerRunni
         {formatTime(timerSeconds)}
       </div>
 
-      <div className="flex items-center justify-center gap-2 mt-4">
+      {/* Status badge - improved */}
+      <div className="flex items-center justify-center gap-2 mt-6">
         <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider ${
-            isTimerRunning ? 'bg-green-500/15 text-green-500' : 'bg-yellow-500/15 text-yellow-500'
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider transition-all ${
+            isTimerRunning 
+              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+              : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
           }`}
           role="status"
         >
-          {isTimerRunning ? <Play className="w-3 h-3 fill-current" aria-hidden="true" /> : <Pause className="w-3 h-3 fill-current" aria-hidden="true" />}
+          {isTimerRunning ? (
+            <Play className="w-4 h-4 fill-current" aria-hidden="true" />
+          ) : (
+            <Pause className="w-4 h-4 fill-current" aria-hidden="true" />
+          )}
           {timerLabel}
         </span>
       </div>
 
-      <TimerStatsDisplay taskTitle={activeTaskTitle} currentSeconds={timerSeconds} />
+      {/* Timer stats below */}
+      <div className="mt-6 pt-4 border-t border-zinc-800">
+        <TimerStatsDisplay taskTitle={activeTaskTitle} currentSeconds={timerSeconds} />
+      </div>
     </section>
   );
 }
