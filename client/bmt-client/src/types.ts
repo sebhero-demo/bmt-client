@@ -79,26 +79,16 @@ export const formatTime = (seconds: number): string => {
 export const getTaskStats = (tasks: Task[]): TaskStats[] => {
   const map = new Map<string, { durations: number[]; taskCount: number }>();
 
-  // Collect durations (per run) for each title from all tasks' timeLogs
   for (const task of tasks) {
     if (task.status !== 'completed') continue;
     if (!task.completedAt) continue;
 
-    // Determine the duration value to use
-    let durationToUse: number;
-    if (task.timeLogs && task.timeLogs.length > 0) {
-      // If task has timeLogs, use totalDurationSeconds (not individual log durations)
-      // This matches the expected test behavior
-      durationToUse = task.totalDurationSeconds;
-    } else {
-      // Fallback: use totalDurationSeconds for tasks without timeLogs (backwards compat)
-      durationToUse = task.totalDurationSeconds;
-    }
-
+    // Use totalDurationSeconds as the duration value
+    const durationToUse = task.totalDurationSeconds;
     if (durationToUse >= 0) {
       const existing = map.get(task.title) ?? { durations: [], taskCount: 0 };
       existing.durations.push(durationToUse);
-      existing.taskCount += 1; // Count as 1 task completion
+      existing.taskCount += 1;
       map.set(task.title, existing);
     }
   }
