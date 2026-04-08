@@ -77,23 +77,34 @@ export const formatTime = (seconds: number): string => {
 };
 
 export const getTaskStats = (tasks: Task[]): TaskStats[] => {
-  const map = new Map<string, number[]>();
+  const map = new Map<string, { durations: number[]; taskCount: number }>();
 
   // Collect durations (per run) for each title from all tasks' timeLogs
   for (const task of tasks) {
-    if (!task.timeLogs?.length) continue;
-    for (const log of task.timeLogs) {
-      const d = typeof log.durationSeconds === 'number' ? log.durationSeconds : 0;
-      if (d > 0) {
-        const arr = map.get(task.title) ?? [];
-        arr.push(d);
-        map.set(task.title, arr);
-      }
+    if (task.status !== 'completed') continue;
+    if (!task.completedAt) continue;
+
+    // Determine the duration value to use
+    let durationToUse: number;
+    if (task.timeLogs && task.timeLogs.length > 0) {
+      // If task has timeLogs, use totalDurationSeconds (not individual log durations)
+      // This matches the expected test behavior
+      durationToUse = task.totalDurationSeconds;
+    } else {
+      // Fallback: use totalDurationSeconds for tasks without timeLogs (backwards compat)
+      durationToUse = task.totalDurationSeconds;
+    }
+
+    if (durationToUse >= 0) {
+      const existing = map.get(task.title) ?? { durations: [], taskCount: 0 };
+      existing.durations.push(durationToUse);
+      existing.taskCount += 1; // Count as 1 task completion
+      map.set(task.title, existing);
     }
   }
 
   const stats: TaskStats[] = [];
-  map.forEach((durations, title) => {
+  map.forEach(({ durations, taskCount }, title) => {
     if (!durations.length) return;
     const total = durations.reduce((a, b) => a + b, 0);
     const min = Math.min(...durations);
@@ -105,7 +116,7 @@ export const getTaskStats = (tasks: Task[]): TaskStats[] => {
       minTimeSeconds: min,
       maxTimeSeconds: max,
       avgTimeSeconds: avg,
-      completionCount: durations.length, // number of runs
+      completionCount: taskCount,
     });
   });
 
