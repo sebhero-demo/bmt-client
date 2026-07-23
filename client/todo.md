@@ -1,36 +1,4 @@
-# LLM Coding Instructions: Beast Mode Todo (Client-Side)
-
-**Status:** ⚠️ FIX IN PROGRESS
-
-## Remaining Issues (TypeScript Errors)
-
-Fixa dessa filer:
-
-### 1. StatsDisplay.tsx (LÄGG TILL)
-Rad 49: Lägg till saknad import:
-```typescript
-import { getTaskStats } from '../types';
-```
-
-### 2. TaskItem.tsx
-- Rad 6: Ta bort `Square` från lucide import (den används inte)
-- Rad 7: Ändra `Task` till type import:
-```typescript
-import type { Task } from '../types';
-```
-- Ta bort oanvänd `currentDuration` variabel
-
-### 3. store.ts
-Ta bort oanvända:
-- `TaskStatus` (används inte)
-- `userStats` (används inte)
-
----
-
-Sen bygg och testa med:
-```bash
-npm run tsc && npm run dev
-```
+# Beast Mode Todo — Client-side Architecture & Types
 
 **Role:** You are an expert Frontend Developer and AI Coding Assistant. Your task is to build the client-side application for "Beast Mode Todo" based on the specifications below. 
 

@@ -21,13 +21,13 @@
 ## Release
 ```bash
 # Bygg för prod
-npm run build
+pnpm run build
 # Deployas automatic via GitHub Actions
 ```
 
 ## Lokal kör
 ```bash
-npm run dev  # webb
+pnpm run dev  # webb
 # eller
 bun run .    # desktop (TBD)
 ```
