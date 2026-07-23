@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Task, UserStats, TimeLog } from './types';
 import { generateId, getTaskStats, getMotivationMessage } from './types';
+import { TimerSession, computeStats } from './lib/timer-session';
 
 // ============================================
 // AppState
@@ -59,20 +60,10 @@ interface AppState {
 }
 
 // ============================================
-// Helpers
+// Store
 // ============================================
-const calculateXP = (seconds: number): number => Math.max(10, Math.floor(seconds / 60));
-
 const isToday = (dateString: string): boolean => {
   try {
-    // Prefer Temporal if available (you used it before)
-    // @ts-ignore
-    const date = Temporal.Instant.from(dateString).toZonedDateTimeISO(Temporal.Now.timeZoneId());
-    // @ts-ignore
-    const today = Temporal.Now.plainDateISO();
-    // @ts-ignore
-    return date.toPlainDate().equals(today);
-  } catch {
     const date = new Date(dateString);
     const today = new Date();
     return (
@@ -80,48 +71,11 @@ const isToday = (dateString: string): boolean => {
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
     );
+  } catch {
+    return false;
   }
 };
 
-// Compute aggregated stats from timeLogs (only logs with durationSeconds > 0)
-function computeStatsFromLogs(timeLogs: TimeLog[]) {
-  const durations = (timeLogs || [])
-    .map((l) => (typeof l.durationSeconds === 'number' ? l.durationSeconds : 0))
-    .filter((d) => d > 0);
-
-  if (durations.length === 0) {
-    return {
-      minTimeSeconds: 0,
-      maxTimeSeconds: 0,
-      avgTimeSeconds: 0,
-      runsCount: 0,
-      totalSeconds: 0,
-    };
-  }
-
-  const totalSeconds = durations.reduce((a, b) => a + b, 0);
-  const minTimeSeconds = Math.min(...durations);
-  const maxTimeSeconds = Math.max(...durations);
-  const avgTimeSeconds = Math.round(totalSeconds / durations.length);
-  const runsCount = durations.length;
-
-  return { minTimeSeconds, maxTimeSeconds, avgTimeSeconds, runsCount, totalSeconds };
-}
-
-// Close last open log (if any) and set endTime + durationSeconds
-function closeLastOpenLog(logs: TimeLog[], sessionSeconds: number, nowIso: string) {
-  if (!logs || logs.length === 0) return logs;
-  const copy = [...logs];
-  const last = copy[copy.length - 1];
-  if (last && !last.endTime) {
-    copy[copy.length - 1] = { ...last, endTime: nowIso, durationSeconds: sessionSeconds };
-  }
-  return copy;
-}
-
-// ============================================
-// Store
-// ============================================
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -179,73 +133,58 @@ export const useAppStore = create<AppState>()(
 
       // Start a task: pause any other running task, append a new open timeLog, start session timer
       startTask: (id) => {
-        const { activeTaskId, isTimerRunning } = get();
+        const { activeTaskId, isTimerRunning, tasks } = get();
         if (activeTaskId && activeTaskId !== id && isTimerRunning) {
           get().pauseTask(activeTaskId);
         }
 
-        set((state) => {
-          const task = state.tasks.find((t) => t.id === id);
-          if (!task || task.status === 'completed') return {};
-          const nowIso = new Date().toISOString();
-          const newLog: TimeLog = { id: generateId(), startTime: nowIso, endTime: null, durationSeconds: 0 };
+        const task = tasks.find((t) => t.id === id);
+        if (!task || task.status === 'completed') return;
+        const nowIso = new Date().toISOString();
+        const newLog: TimeLog = { id: generateId(), startTime: nowIso, endTime: null, durationSeconds: 0 };
 
-          const allStats = getTaskStats(state.tasks);
-          const taskStat = allStats.find((s) => s.title === task.title);
-          const motivation = getMotivationMessage(taskStat);
+        const session = new TimerSession(task);
+        const patch = session.start(0, newLog);
 
-          return {
-            activeTaskId: id,
-            timerSeconds: 0,
-            isTimerRunning: true,
-            timerStartTime: Date.now(),
-            motivationMessage: motivation,
-            tasks: state.tasks.map((t) =>
-              t.id === id ? { ...t, status: 'in_progress', timeLogs: [...t.timeLogs, newLog] } : t.status === 'in_progress' && t.id !== id ? { ...t, status: 'paused' } : t
-            ),
-            announcement: `Started: ${task.title}`,
-          };
-        });
+        const allStats = getTaskStats(tasks);
+        const taskStat = allStats.find((s) => s.title === task.title);
+        const motivation = getMotivationMessage(taskStat);
+
+        set((state) => ({
+          activeTaskId: id,
+          timerSeconds: 0,
+          isTimerRunning: true,
+          timerStartTime: Date.now(),
+          motivationMessage: motivation,
+          tasks: state.tasks.map((t) =>
+            t.id === id ? { ...t, ...patch } : t.status === 'in_progress' && t.id !== id ? { ...t, status: 'paused' } : t
+          ),
+          announcement: `Started: ${task.title}`,
+        }));
         setTimeout(() => set({ announcement: null }), 1000);
       },
 
       // Pause a running task: close the open log, add session seconds to total, recompute stats
       pauseTask: (id) => {
-        set((state) => {
-          const task = state.tasks.find((t) => t.id === id);
-          if (!task || task.status !== 'in_progress') return {};
-          const nowIso = new Date().toISOString();
+        const { tasks, timerSeconds, timerStartTime } = get();
+        const task = tasks.find((t) => t.id === id);
+        if (!task || task.status !== 'in_progress') return;
+        const nowIso = new Date().toISOString();
 
-          // compute session seconds: timerSeconds + running delta
-          let sessionSeconds = state.timerSeconds || 0;
-          if (state.timerStartTime) sessionSeconds += Math.floor((Date.now() - state.timerStartTime) / 1000);
+        let sessionSeconds = timerSeconds || 0;
+        if (timerStartTime) sessionSeconds += Math.floor((Date.now() - timerStartTime) / 1000);
 
-          const updatedLogs = closeLastOpenLog(task.timeLogs, sessionSeconds, nowIso);
-          const newTotal = (task.totalDurationSeconds || 0) + sessionSeconds;
-          const stats = computeStatsFromLogs(updatedLogs);
+        const session = new TimerSession(task);
+        const patch = session.pause(sessionSeconds, { nowIso });
 
-          return {
-            isTimerRunning: false,
-            timerStartTime: null,
-            timerSeconds: 0,
-            activeTaskId: state.activeTaskId === id ? null : state.activeTaskId,
-            tasks: state.tasks.map((t) =>
-              t.id === id
-                ? {
-                  ...t,
-                  status: 'paused',
-                  timeLogs: updatedLogs,
-                  totalDurationSeconds: newTotal,
-                  minTimeSeconds: stats.minTimeSeconds,
-                  maxTimeSeconds: stats.maxTimeSeconds,
-                  avgTimeSeconds: stats.avgTimeSeconds,
-                  runsCount: stats.runsCount,
-                }
-                : t
-            ),
-            announcement: `Paused: ${task.title}`,
-          };
-        });
+        set((state) => ({
+          isTimerRunning: false,
+          timerStartTime: null,
+          timerSeconds: 0,
+          activeTaskId: state.activeTaskId === id ? null : state.activeTaskId,
+          tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+          announcement: `Paused: ${task.title}`,
+        }));
         setTimeout(() => set({ announcement: null }), 1000);
       },
 
@@ -256,77 +195,55 @@ export const useAppStore = create<AppState>()(
           get().pauseTask(activeTaskId);
         }
 
-        set((state) => {
-          const task = state.tasks.find((t) => t.id === id);
-          if (!task || task.status !== 'paused') return {};
-          const nowIso = new Date().toISOString();
-          const newLog: TimeLog = { id: generateId(), startTime: nowIso, endTime: null, durationSeconds: 0 };
+        const task = get().tasks.find((t) => t.id === id);
+        if (!task || task.status !== 'paused') return;
+        const nowIso = new Date().toISOString();
+        const newLog: TimeLog = { id: generateId(), startTime: nowIso, endTime: null, durationSeconds: 0 };
 
-          return {
-            activeTaskId: id,
-            timerSeconds: 0, // start fresh for this resumed session
-            isTimerRunning: true,
-            timerStartTime: Date.now(),
-            tasks: state.tasks.map((t) =>
-              t.id === id ? { ...t, status: 'in_progress', timeLogs: [...t.timeLogs, newLog] } : t.status === 'in_progress' && t.id !== id ? { ...t, status: 'paused' } : t
-            ),
-            announcement: `Resumed: ${task.title}`,
-          };
-        });
+        const session = new TimerSession(task);
+        const patch = session.resume(0, newLog);
+
+        set((state) => ({
+          activeTaskId: id,
+          timerSeconds: 0,
+          isTimerRunning: true,
+          timerStartTime: Date.now(),
+          tasks: state.tasks.map((t) =>
+            t.id === id ? { ...t, ...patch } : t.status === 'in_progress' && t.id !== id ? { ...t, status: 'paused' } : t
+          ),
+          announcement: `Resumed: ${task.title}`,
+        }));
         setTimeout(() => set({ announcement: null }), 1000);
       },
 
       // Complete a task: close open log (if any), recompute stats (min/max/avg) from all logs, save totals, and reset session
       completeTask: (id) => {
-        set((state) => {
-          const task = state.tasks.find((t) => t.id === id);
-          if (!task || task.status === 'completed') return {};
-          const nowIso = new Date().toISOString();
+        const { tasks, timerSeconds, timerStartTime } = get();
+        const task = tasks.find((t) => t.id === id);
+        if (!task || task.status === 'completed') return;
+        const nowIso = new Date().toISOString();
 
-          // compute session seconds only if in_progress
-          let sessionSeconds = 0;
-          if (task.status === 'in_progress') {
-            sessionSeconds = state.timerSeconds || 0;
-            if (state.timerStartTime) sessionSeconds += Math.floor((Date.now() - state.timerStartTime) / 1000);
-          }
+        let sessionSeconds = 0;
+        if (task.status === 'in_progress') {
+          sessionSeconds = timerSeconds || 0;
+          if (timerStartTime) sessionSeconds += Math.floor((Date.now() - timerStartTime) / 1000);
+        }
 
-          // close last open log if in_progress
-          const updatedLogs = task.status === 'in_progress' ? closeLastOpenLog(task.timeLogs, sessionSeconds, nowIso) : [...task.timeLogs];
+        const session = new TimerSession(task);
+        const { patch, xpGained } = session.complete(sessionSeconds, { nowIso });
 
-          // recompute stats based on all logs (manual included)
-          const stats = computeStatsFromLogs(updatedLogs);
-          const totalDuration = stats.totalSeconds || task.totalDurationSeconds || 0;
-
-          // award XP — keep existing behavior (based on aggregated total). If you want per-run XP, switch to sessionSeconds.
-          const xpGained = calculateXP(totalDuration);
-
-          return {
-            activeTaskId: state.activeTaskId === id ? null : state.activeTaskId,
-            isTimerRunning: state.activeTaskId === id ? false : state.isTimerRunning,
-            timerStartTime: state.activeTaskId === id ? null : state.timerStartTime,
-            timerSeconds: 0,
-            userStats: {
-              ...state.userStats,
-              xp: state.userStats.xp + xpGained,
-            },
-            tasks: state.tasks.map((t) =>
-              t.id === id
-                ? {
-                  ...t,
-                  status: 'completed',
-                  completedAt: nowIso,
-                  totalDurationSeconds: totalDuration,
-                  timeLogs: updatedLogs,
-                  minTimeSeconds: stats.minTimeSeconds,
-                  maxTimeSeconds: stats.maxTimeSeconds,
-                  avgTimeSeconds: stats.avgTimeSeconds,
-                  runsCount: stats.runsCount,
-                }
-                : t
-            ),
-            announcement: `Completed: ${task.title}. Gained ${xpGained} XP!`,
-          };
-        });
+        set((state) => ({
+          activeTaskId: state.activeTaskId === id ? null : state.activeTaskId,
+          isTimerRunning: state.activeTaskId === id ? false : state.isTimerRunning,
+          timerStartTime: state.activeTaskId === id ? null : state.timerStartTime,
+          timerSeconds: 0,
+          userStats: {
+            ...state.userStats,
+            xp: state.userStats.xp + xpGained,
+          },
+          tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+          announcement: `Completed: ${task.title}. Gained ${xpGained} XP!`,
+        }));
         setTimeout(() => set({ announcement: null }), 2000);
       },
 
@@ -366,7 +283,7 @@ export const useAppStore = create<AppState>()(
           tasks: state.tasks.map((t) => {
             if (t.id !== id) return t;
             const logs = [...t.timeLogs, newLog];
-            const stats = computeStatsFromLogs(logs);
+            const stats = computeStats(logs);
             return {
               ...t,
               timeLogs: logs,
