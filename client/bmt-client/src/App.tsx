@@ -76,7 +76,13 @@ export default function App(): JSX.Element {
       <main id="main-content" ref={mainRef} className="flex-1 px-4 py-4 sm:py-6 outline-none" tabIndex={-1} role="main">
         <div className="max-w-lg mx-auto space-y-5 w-full">
           {activeTask ? (
-            <TimerPanel activeTaskTitle={activeTask.title} timerSeconds={timerSeconds} isTimerRunning={isTimerRunning} />
+            <TimerPanel 
+              activeTaskTitle={activeTask.title} 
+              timerSeconds={timerSeconds} 
+              isTimerRunning={isTimerRunning}
+              timerStartTime={timerStartTime}
+              totalDurationSeconds={activeTask.totalDurationSeconds}
+            />
           ) : null}
 
           <section aria-label="Your statistics" className="animate-fade-in delay-200">

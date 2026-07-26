@@ -77,24 +77,26 @@ export const formatTime = (seconds: number): string => {
 };
 
 export const getTaskStats = (tasks: Task[]): TaskStats[] => {
-  const map = new Map<string, { durations: number[]; taskCount: number }>();
+  const map = new Map<string, { durations: number[]; completionCount: number }>();
 
   for (const task of tasks) {
     if (task.status !== 'completed') continue;
     if (!task.completedAt) continue;
 
-    // Use totalDurationSeconds as the duration value
-    const durationToUse = task.totalDurationSeconds;
-    if (durationToUse >= 0) {
-      const existing = map.get(task.title) ?? { durations: [], taskCount: 0 };
-      existing.durations.push(durationToUse);
-      existing.taskCount += 1;
-      map.set(task.title, existing);
-    }
+    const durations = (task.timeLogs || [])
+      .filter((l) => l.endTime && l.durationSeconds > 0)
+      .map((l) => l.durationSeconds);
+
+    if (durations.length === 0) continue;
+
+    const existing = map.get(task.title) ?? { durations: [], completionCount: 0 };
+    existing.durations.push(...durations);
+    existing.completionCount += durations.length;
+    map.set(task.title, existing);
   }
 
   const stats: TaskStats[] = [];
-  map.forEach(({ durations, taskCount }, title) => {
+  map.forEach(({ durations, completionCount }, title) => {
     if (!durations.length) return;
     const total = durations.reduce((a, b) => a + b, 0);
     const min = Math.min(...durations);
@@ -106,7 +108,7 @@ export const getTaskStats = (tasks: Task[]): TaskStats[] => {
       minTimeSeconds: min,
       maxTimeSeconds: max,
       avgTimeSeconds: avg,
-      completionCount: taskCount,
+      completionCount,
     });
   });
 

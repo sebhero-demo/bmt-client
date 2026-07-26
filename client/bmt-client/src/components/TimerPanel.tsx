@@ -1,6 +1,5 @@
 import { Play, Pause } from "lucide-react";
-import { type JSX, useMemo } from "react";
-import { useAppStore } from "../store";
+import { type JSX, useMemo, useState, useEffect } from "react";
 import { formatTime } from "../types";
 import TimerStatsDisplay from "./TimerStatsDisplay";
 
@@ -8,10 +7,27 @@ type Props = {
   activeTaskTitle: string;
   timerSeconds: number;
   isTimerRunning: boolean;
+  timerStartTime: number | null;
+  totalDurationSeconds: number;
 };
 
-export default function TimerPanel({ activeTaskTitle, timerSeconds, isTimerRunning }: Props): JSX.Element {
-  const { /* start/pause/resume/complete handlers could be selected here if rendering controls are added */ } = useAppStore();
+export default function TimerPanel({ activeTaskTitle, timerSeconds, isTimerRunning, timerStartTime, totalDurationSeconds }: Props): JSX.Element {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    const id = setInterval(() => setTick((t) => t + 1), 500);
+    return () => clearInterval(id);
+  }, [isTimerRunning]);
+
+  const displaySeconds = useMemo(() => {
+    const base = totalDurationSeconds || 0;
+    if (isTimerRunning) {
+      const runningDelta = timerStartTime ? Math.floor((Date.now() - timerStartTime) / 1000) : 0;
+      return base + (timerSeconds || 0) + runningDelta;
+    }
+    return base + (timerSeconds || 0);
+  }, [totalDurationSeconds, timerSeconds, isTimerRunning, timerStartTime]);
 
   const timerLabel = useMemo(() => (isTimerRunning ? 'Running' : 'Paused'), [isTimerRunning]);
 
@@ -37,7 +53,7 @@ export default function TimerPanel({ activeTaskTitle, timerSeconds, isTimerRunni
         aria-atomic="true"
       >
         <span className="sr-only">Elapsed time: </span>
-        {formatTime(timerSeconds)}
+        {formatTime(displaySeconds)}
       </div>
 
       {/* Status badge - improved */}
@@ -61,7 +77,7 @@ export default function TimerPanel({ activeTaskTitle, timerSeconds, isTimerRunni
 
       {/* Timer stats below */}
       <div className="mt-6 pt-4 border-t border-zinc-800">
-        <TimerStatsDisplay taskTitle={activeTaskTitle} currentSeconds={timerSeconds} />
+        <TimerStatsDisplay taskTitle={activeTaskTitle} currentSeconds={displaySeconds} />
       </div>
     </section>
   );

@@ -72,13 +72,20 @@ describe('formatTime', () => {
 });
 
 describe('getTaskStats', () => {
-  // Helper to create a completed task with specific duration
-  const makeTask = (title: string, seconds: number, completedAt?: string): Task => ({
+  const makeLog = (durationSeconds: number): TimeLog => ({
+    id: generateId(),
+    startTime: new Date().toISOString(),
+    endTime: new Date().toISOString(),
+    durationSeconds,
+  });
+
+  // Helper to create a completed task with specific time logs
+  const makeTask = (title: string, logs: TimeLog[], completedAt?: string): Task => ({
     id: generateId(),
     title,
     status: 'completed',
-    timeLogs: [],
-    totalDurationSeconds: seconds,
+    timeLogs: logs,
+    totalDurationSeconds: logs.reduce((sum, l) => sum + l.durationSeconds, 0),
     createdAt: new Date().toISOString(),
     completedAt: completedAt || new Date().toISOString(),
   });
@@ -89,14 +96,14 @@ describe('getTaskStats', () => {
 
   it('returns empty array when no completed tasks', () => {
     const tasks: Task[] = [
-      { ...makeTask('A', 100), status: 'idle' },
-      { ...makeTask('B', 200), status: 'in_progress' },
+      { ...makeTask('A', [{ id: generateId(), startTime: '', endTime: '', durationSeconds: 100 }]), status: 'idle' },
+      { ...makeTask('B', [{ id: generateId(), startTime: '', endTime: '', durationSeconds: 200 }]), status: 'in_progress' },
     ];
     expect(getTaskStats(tasks)).toEqual([]);
   });
 
   it('calculates stats for single task', () => {
-    const tasks = [makeTask('Task', 600)];
+    const tasks = [makeTask('Task', [makeLog(600)])];
     const stats = getTaskStats(tasks);
     
     expect(stats).toHaveLength(1);
@@ -109,9 +116,9 @@ describe('getTaskStats', () => {
 
   it('calculates min, max, avg for multiple completions', () => {
     const tasks = [
-      makeTask('Task', 300),
-      makeTask('Task', 600),
-      makeTask('Task', 900),
+      makeTask('Task', [makeLog(300)]),
+      makeTask('Task', [makeLog(600)]),
+      makeTask('Task', [makeLog(900)]),
     ];
     const stats = getTaskStats(tasks);
     
@@ -123,9 +130,9 @@ describe('getTaskStats', () => {
 
   it('groups tasks by title', () => {
     const tasks = [
-      makeTask('A', 300),
-      makeTask('B', 600),
-      makeTask('A', 450),
+      makeTask('A', [makeLog(300)]),
+      makeTask('B', [makeLog(600)]),
+      makeTask('A', [makeLog(450)]),
     ];
     const stats = getTaskStats(tasks);
     
@@ -140,10 +147,10 @@ describe('getTaskStats', () => {
 
   it('excludes non-completed tasks', () => {
     const tasks: Task[] = [
-      makeTask('A', 100),
-      { ...makeTask('B', 200), status: 'in_progress' },
-      { ...makeTask('C', 300), status: 'idle' },
-      { ...makeTask('D', 400), status: 'paused' },
+      makeTask('A', [makeLog(100)]),
+      { ...makeTask('B', [makeLog(200)]), status: 'in_progress' },
+      { ...makeTask('C', [makeLog(300)]), status: 'idle' },
+      { ...makeTask('D', [makeLog(400)]), status: 'paused' },
     ];
     const stats = getTaskStats(tasks);
     
@@ -153,7 +160,7 @@ describe('getTaskStats', () => {
 
   it('excludes tasks without completedAt', () => {
     const task: Task = {
-      ...makeTask('Test', 100),
+      ...makeTask('Test', [makeLog(100)]),
       completedAt: undefined as any,
     };
     expect(getTaskStats([task])).toEqual([]);
@@ -161,7 +168,7 @@ describe('getTaskStats', () => {
 
   it('excludes tasks with null completedAt', () => {
     const task: Task = {
-      ...makeTask('Test', 100),
+      ...makeTask('Test', [makeLog(100)]),
       completedAt: null,
     };
     expect(getTaskStats([task])).toEqual([]);
@@ -169,12 +176,12 @@ describe('getTaskStats', () => {
 
   it('sorts by completion count descending', () => {
     const tasks = [
-      makeTask('Rare', 100),
-      makeTask('Common', 100),
-      makeTask('Common', 100),
-      makeTask('Common', 100),
-      makeTask('Medium', 100),
-      makeTask('Medium', 100),
+      makeTask('Rare', [makeLog(100)]),
+      makeTask('Common', [makeLog(100)]),
+      makeTask('Common', [makeLog(100)]),
+      makeTask('Common', [makeLog(100)]),
+      makeTask('Medium', [makeLog(100)]),
+      makeTask('Medium', [makeLog(100)]),
     ];
     const stats = getTaskStats(tasks);
     
@@ -183,36 +190,36 @@ describe('getTaskStats', () => {
     expect(stats[2].title).toBe('Rare');
   });
 
-  it('handles task with many time logs', () => {
-    const logs: TimeLog[] = Array.from({ length: 10 }, (_, i) => ({
-      id: generateId(),
-      startTime: new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      durationSeconds: 60 + i * 10,
-    }));
-    
+  it('handles single task with multiple completed logs by deriving stats from logs', () => {
+    const logs: TimeLog[] = [
+      { id: 'log-1', startTime: '2023-01-01T10:00:00Z', endTime: '2023-01-01T10:02:00Z', durationSeconds: 120 },
+      { id: 'log-2', startTime: '2023-01-02T10:00:00Z', endTime: '2023-01-02T10:05:00Z', durationSeconds: 300 },
+    ];
     const task: Task = {
-      id: generateId(),
-      title: 'Multi-log Task',
+      id: 'task-1',
+      title: 'Redo Task',
       status: 'completed',
       timeLogs: logs,
-      totalDurationSeconds: 1050,
+      totalDurationSeconds: 420,
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
     };
-    
+
     const stats = getTaskStats([task]);
-    
+
     expect(stats).toHaveLength(1);
-    expect(stats[0].completionCount).toBe(1); // Task count, not log count
-    expect(stats[0].avgTimeSeconds).toBe(1050);
+    expect(stats[0].title).toBe('Redo Task');
+    expect(stats[0].completionCount).toBe(2);
+    expect(stats[0].minTimeSeconds).toBe(120);
+    expect(stats[0].maxTimeSeconds).toBe(300);
+    expect(stats[0].avgTimeSeconds).toBe(210);
   });
 
   it('rounds avgTimeSeconds', () => {
     const tasks = [
-      makeTask('Task', 100),
-      makeTask('Task', 101),
-      makeTask('Task', 102),
+      makeTask('Task', [makeLog(100)]),
+      makeTask('Task', [makeLog(101)]),
+      makeTask('Task', [makeLog(102)]),
     ];
     const stats = getTaskStats(tasks);
     
@@ -221,23 +228,22 @@ describe('getTaskStats', () => {
   });
 
   it('handles tasks with zero duration', () => {
-    const tasks = [makeTask('Zero', 0)];
+    const tasks = [makeTask('Zero', [makeLog(0)])];
     const stats = getTaskStats(tasks);
     
-    expect(stats[0].minTimeSeconds).toBe(0);
-    expect(stats[0].maxTimeSeconds).toBe(0);
-    expect(stats[0].avgTimeSeconds).toBe(0);
+    // Zero-duration logs are excluded, so the task contributes no stats
+    expect(stats).toHaveLength(0);
   });
 
   it('handles very large durations', () => {
-    const tasks = [makeTask('Long', 86400)]; // 24 hours
+    const tasks = [makeTask('Long', [makeLog(86400)])]; // 24 hours
     const stats = getTaskStats(tasks);
     
     expect(stats[0].avgTimeSeconds).toBe(86400);
   });
 
   it('handles many different task titles', () => {
-    const tasks = Array.from({ length: 20 }, (_, i) => makeTask(`Task ${i}`, 60));
+    const tasks = Array.from({ length: 20 }, (_, i) => makeTask(`Task ${i}`, [makeLog(60)]));
     const stats = getTaskStats(tasks);
     
     expect(stats).toHaveLength(20);
